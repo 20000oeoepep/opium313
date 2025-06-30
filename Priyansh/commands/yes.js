@@ -1,43 +1,76 @@
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+
 module.exports.config = {
-    name: "تفكيك",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "عبدالرحمن",
-    description: "لعبة تفكيك الكلمه ",
-    usages: ["لعبة"],
-    commandCategory: "العاب",
-    cooldowns: 0
+    name: "تخيل",
+    version: "1.0",
+    hasPermission: 0,
+    credits: "ǺᎩᎧᏬᏰ",
+    description: "يرسم صور من نص معين مع التحكم في الأسلوب.",
+    commandCategory: "تخيل",
+    usages: "[النص] [رقم الاسلوب] [حجم الصورة (rto)]",
+    cooldowns: 5
 };
 
-const questions = [
+module.exports.handleEvent = async function ({ api, event }) {
+ 
 
+    if (args.length < 2) {
+        api.sendMessage("جرب [ماذا تريد تخيله] [رقم الأسلوب] [حجم الصورة (rto)]", event.threadID, event.messageID);
+        return;
+    }
 
+    try {
+        const ayoub = args.slice(0, -1).join(" ");
+        const translateURL = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(ayoub)}`;
+  
+        try {
+            const translationResponse = await axios.get(translateURL);
+            const ayoubzx = translationResponse.data[0][0][0];
+            const style = args[args.length - 2];
+            let rto = args[args.length - 1];
+        
+            if (!rto || isNaN(rto)) {
+                rto = 1; 
+            } else {
+                rto = parseInt(rto);
+            }
 
+            const sex = {
+                prompt: ayoubzx,
+                sty: style,
+                rto: rto
+            };
 
-  { question: "بيت", answer: "ب ي ت" },
-  { question: "رجل", answer: "ر ج ل" },
-  { question: "امرأة", answer: "ا م ر أ ة" },
-  { question: "ولد", answer: "و ل د" },
-  { question: "فتاة", answer: "ف ت ا ة" },
-  { question: "ماء", answer: "م ا ء" },
-  { question: "نار", answer: "ن ا ر" },
-  { question: "شمس", answer: "ش م س" },
-  { question: "قمر", answer: "ق م ر" },
-  { question: "ليل", answer: "ل ي ل" },
-  { question: "نهار", answer: "ن ه ا ر" },
-  { question: "جبل", answer: "ج ب ل" },
-  { question: "سهل", answer: "س ه ل" },
-  { question: "شجرة", answer: "ش ج ر ة" },
-  { question: "زهرة", answer: "ز ه ر ة" },
-  { question: "طير", answer: "ط ي ر" },
-  { question: "أسد", answer: "أ س د" },
-  { question: "ذئب", answer: "ذ ئ ب" },
-  { question: "جمل", answer: "ج م ل" },
-  { question: "بقر", answer: "ب ق ر" },
-  { question: "غنم", answer: "غ ن م" },
-  { question: "كتاب", answer: "ك ت ا ب" },
-  { question: "قلم", answer: "ق ل م" },
-  { question: "ورقة", answer: "و ر ق ة" },
-  { question: "منزل", answer: "م ن ز ل" },
-  { question: "مدرسة", answer: "م د ر س ة" },
-  { question: "مستشفى", answer: "م س ت ش ف ى" },
+            api.sendMessage("🕟 | يـرجـى الانـتـظـار", event.threadID, event.messageID);
+
+            const ninoo = await axios.post("https://app-dodogen-835c6bdca048.herokuapp.com/gen", sex);
+            const generatedImages = ninoo.data.url;
+
+            const imgData = [];
+
+            for (let i = 0; i < generatedImages.length; i++) {
+                const imgUrl = generatedImages[i];
+                const imgResponse = await axios.get(imgUrl, { responseType: 'arraybuffer' });
+                const imgPath = path.join(__dirname, 'cache', `${i + 1}.jpg`);
+                await fs.outputFile(imgPath, imgResponse.data);
+                imgData.push(fs.createReadStream(imgPath));
+            }
+
+            await api.sendMessage({
+                body: `🖼️ | إليك الصور الناتجة عن النص "${ayoub}" بأسلوب رقم ${style} وحجم الصورة ${rto} مع ${sex}:`,
+                attachment: imgData
+            }, event.threadID, event.messageID);
+
+        } catch (error) {
+            console.error(error);
+            await api.sendMessage(`❌ حدث خطأ\n\nخطأ: ${error.message}`, event.threadID);
+        }
+    } catch (error) {
+        console.error(error);
+        await api.sendMessage(`❌ حدث خطأ\n\nخطأ: ${error.message}`, event.threadID);
+    }
+};
+
+module.exports.run = async function({api, event}) {};

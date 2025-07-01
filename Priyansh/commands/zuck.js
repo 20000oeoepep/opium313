@@ -1,4 +1,4 @@
-Module.exports.config = {
+module.exports.config = {
   name: "صور",
   version: "0.0.1",
   hasPermssion: 0,
@@ -13,11 +13,10 @@ module.exports.run = async function({ api, event, args }) {
     const axios = require("axios");
     const fs = require("fs-extra");
     const request = require("request");
-
     const name = args.join(" ").trim().replace(/\s+/g, " ").replace(/(\s+\|)/g, "|").replace(/\|\s+/g, "|").split("-")[0];
     const number = args.join(" ").trim().replace(/\s+/g, " ").replace(/(\s+\|)/g, "|").replace(/\|\s+/g, "|").split("-")[1] || 6;
 
-    if (!name || !number) {
+    if(!name || !number ){ 
         return api.sendMessage("Missing Data", event.threadID);
     }
 
@@ -32,11 +31,11 @@ module.exports.run = async function({ api, event, args }) {
         'sec-fetch-mode': 'same-origin',
         'sec-fetch-dest': 'empty',
         'accept-language': 'en-US,en;q=0.9',
-        'cookie': 'csrftoken=92c7c57416496066c4cd5a47a2448e28; g_state={"i_l":0}; _auth=1; _pinterest_sess=TWc9PSZBMEhrWHJZbHhCVW1OSzE1MW0zSkVid1o4Uk1laXRzdmNwYll3eEFQV0lDSGNRaDBPTGNNUk5JQTBhczFOM0ZJZ1ZJbEJQYlIyUmFkNzlBV2kyaDRiWTI4THFVUWhpNUpRYjR4M2dxblJCRFhESlBIaGMwbjFQWFc2NHRtL3RUcTZna1c3K0VjVTgyejFDa1VqdXQ2ZEQ3NG91L1JTRHZwZHNIcDZraEp1L0lCbkJWUytvRis2ckdrVlNTVytzOFp3ZlpTdWtCOURnbGc3SHhQOWJPTzArY3BhMVEwOTZDVzg5VDQ3S1NxYXZGUEEwOTZBR21LNC9VZXRFTkErYmtIOW9OOEU3ektvY3ZhU0hZWVcxS0VXT3dTaFpVWXNuOHhiQWdZdS9vY24wMnRvdjBGYWo4SDY3MEYwSEtBV2JxYisxMVVsV01McmpKY0VOQ3NYSUt2ZDJaWld6T0RacUd6WktITkRpZzRCaWlCTjRtVXNMcGZaNG9QcC80Ty9ZZWFjZkVGNURNZWVoNTY4elMyd2wySWhtdWFvS2dQcktqMmVUYmlNODBxT29XRWx5dWZSc1FDY0ZONlZJdE9yUGY5L0p3M1JXYkRTUDAralduQ2xxR3VTZzBveUc2Ykx3VW5CQ0FQeVo5VE8wTEVmamhwWkxwMy9SaTNlRUpoQmNQaHREbjMxRlRrOWtwTVI5MXl6cmN1K2NOTFNyU1cyMjREN1ZFSHpHY0ZCR1RocWRjVFZVWG9VcVpwbXNGdlptVzRUSkNadVc1TnlBTVNGQmFmUmtrNHNkVEhXZytLQjNUTURlZXBUMG9GZ3YwQnVNcERDak16Nlp0Tk13dmNsWG82U2xIKyt5WFhSMm1QUktYYmhYSDNhWnB3RWxTUUttQklEeGpCdE4wQlNNOVRzRXE2NkVjUDFKcndvUzNMM2pMT2dGM05WalV2QStmMC9iT055djFsYVBKZjRFTkRtMGZZcWFYSEYvNFJrYTZSbVRGOXVISER1blA5L2psdURIbkFxcTZLT3RGeGswSnRHdGNoN29KdGFlWUxtdHNpSjNXQVorTjR2NGVTZWkwPSZzd3cwOXZNV3VpZlprR0VBempKdjZqS00ybWM9; _b="AV+pPg4VpvlGtL+qN4q0j+vNT7JhUErvp+4TyMybo+d7CIZ9QFohXDj6+jQlg9uD6Zc="; _routing_id="d5da9818-8ce2-4424-ad1e-d55dfe1b9aed"; sessionFunnelEventLogged=1'
+        'cookie': 'csrftoken=92c7c57416496066c4cd5a47a2448e28; ...' // الكوكيز كاملة هنا
     };
 
     var options = {
-        url: 'https://www.pinterest.com/search/pins/?q=' + (encodeURIComponent(name)) + '&rs=typed&term_meta[]=' + (encodeURIComponent(name)) + '%7Ctyped',
+        url: 'https://www.pinterest.com/search/pins/?q=' + encodeURIComponent(name) + '&rs=typed&term_meta[]=' + encodeURIComponent(name) + '%7Ctyped',
         headers: headers
     };
 
@@ -44,38 +43,23 @@ module.exports.run = async function({ api, event, args }) {
         const imgabc = [];
         if (!error && response.statusCode == 200) {
             const arrMatch = body.match(/https:\/\/i\.pinimg\.com\/originals\/[^.]+\.jpg/g);
-
-            if (!arrMatch || arrMatch.length === 0) {
-                return api.sendMessage(`No images found for "${name}".`, event.threadID, event.messageID);
+            for(let i = 0; i < number; i++){
+                const t = await axios.get(`${arrMatch[i]}`, {
+                    responseType: "stream"
+                });
+                imgabc.push(t.data);
             }
 
-            // Limit the number of images to fetch based on 'number'
-            const imagesToFetch = Math.min(number, arrMatch.length);
-
-            for (let i = 0; i < imagesToFetch; i++) {
-                try {
-                    const t = await axios.get(`${arrMatch[i]}`, {
-                        responseType: "stream"
-                    });
-                    imgabc.push(t.data);
-                } catch (imgError) {
-                    console.error(`Error fetching image ${arrMatch[i]}:`, imgError);
-                }
-            }
-
-            // Introduce a 5-second delay before sending the message
+            // تأخير الإرسال 5 ثوانٍ
             setTimeout(() => {
-                var msg = {
-                    body: `► 𝗣𝗜𝗡𝗧𝗘𝗥𝗘𝗦𝗧\n\n${name} - ${imagesToFetch} images`,
+                const msg = {
+                    body: `► 𝗣𝗜𝗡𝗧𝗘𝗥𝗘𝗦𝗧\n\n${name} - ${number}`,
                     attachment: imgabc
                 };
                 return api.sendMessage(msg, event.threadID, event.messageID);
-            }, 5000); // 5000 milliseconds = 5 seconds
-        } else {
-            console.error("Error during Pinterest search:", error || `Status code: ${response.statusCode}`);
-            return api.sendMessage("An error occurred while searching on Pinterest.", event.threadID, event.messageID);
+            }, 5000); // 5000 ملي ثانية = 5 ثواني
         }
     }
 
     request(options, callback);
-};
+}

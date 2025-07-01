@@ -303,14 +303,10 @@ module.exports.run = async function({ api, args, Users, event, Threads, utils, c
         ];
         const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
 
-        // إرسال رسالة التأخير
-        api.sendMessage("جاري اختيار سؤال الصراحة...", event.threadID, (err, info) => {
-            if (err) return console.error(err);
-            // إرسال السؤال بعد 5 ثوانٍ
-            setTimeout(() => {
-                api.sendMessage(`✨ **صارحني** ✨\n\n${randomQuestion}`, event.threadID, event.messageID);
-            }, 5000); // 5000 ميلي ثانية = 5 ثوانٍ
-        });
+        // إرسال السؤال بعد 5 ثوانٍ مباشرة بدون أي رسالة سابقة
+        setTimeout(() => {
+            api.sendMessage(`✨ **صارحني** ✨\n\n${randomQuestion}`, event.threadID, event.messageID);
+        }, 5000); // 5000 ميلي ثانية = 5 ثوانٍ
     } else {
         const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
         return api.sendMessage(`⚔️ ${command.config.name} ⚔️\n${command.config.description}\n\n❯ Cách sử dụng: ${prefix}${command.config.name} ${(command.config.usages) ? command.config.usages : ""}\n❯ Thuộc nhóm: ${command.config.commandCategory}\n❯ Thời gian chờ: ${command.config.cooldowns} giây(s)\n❯ Quyền hạn: ${((command.config.hasPermssion == 0) ? "Người dùng" : (command.config.hasPermssion == 1) ? "Quản trị viên" : "المدير" )}\n❯ Prefix: ${prefix}\n\n» Module code by ${command.config.credits} «`, threadID, messageID);

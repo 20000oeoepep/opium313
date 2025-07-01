@@ -28,7 +28,7 @@ module.exports.run = async function({ api, event, args }) {
     }
     
     // إرسال رسالة التحميل
-    const loadingMsg = await api.sendMessage("⏳ جاري البحث عن الصور، يرجى الانتظار 5 ثواني...", event.threadID);
+    const loadingMsg = await api.sendMessage("", event.threadID);
     
     // تأخير لمدة 5 ثواني
     await new Promise(resolve => setTimeout(resolve, 5000));

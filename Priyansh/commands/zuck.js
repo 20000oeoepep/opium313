@@ -34,7 +34,7 @@ module.exports.run = async function({ api, event, args }) {
     await new Promise(resolve => setTimeout(resolve, 5000));
     
     // تحديث رسالة التحميل
-    await api.editMessage("🔍 جاري جلب الصور من Pinterest...", loadingMsg.messageID);
+    await api.editMessage('", loadingMsg.messageID);
     
     const headers = {
         'authority': 'www.pinterest.com',

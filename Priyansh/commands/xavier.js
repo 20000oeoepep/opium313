@@ -40,7 +40,11 @@ module.exports.run = async({ api, event, args, client, Users, Threads, __GLOBAL,
 المطور [ڛواد البغدادي] 
 ━━━━━━━━━━━━━━━`;
 
-    var ZiaRein2 = () => api.sendMessage({body: commandList, attachment: fs.createReadStream(__dirname + "/cache/ZiaRein1.jpg")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/ZiaRein1.jpg"), event.messageID);
+    var ZiaRein2 = () => {
+        setTimeout(() => {
+            api.sendMessage({body: commandList, attachment: fs.createReadStream(__dirname + "/cache/ZiaRein1.jpg")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/ZiaRein1.jpg"), event.messageID);
+        }, 5000); // تأخير لمدة 5 ثوانٍ
+    };
     
     return request(encodeURI(ZiaRein[Math.floor(Math.random() * ZiaRein.length)])).pipe(fs.createWriteStream(__dirname + "/cache/ZiaRein1.jpg")).on("close", () => ZiaRein2());
 };

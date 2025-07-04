@@ -5,7 +5,7 @@ module.exports.config = {
     credits: "احمد عجينة",
     description: "اقتراحات انمي",
     commandCategory: "ترفية",
-    usages: "ا",
+    usages: "ريو بكج",
     cooldowns: 5,
     dependencies: {
         "request": "",
@@ -28,10 +28,14 @@ module.exports.run = async({ api, event, args, client, Users, Threads, __GLOBAL,
     const { getData, setData } = Currencies;
     const moneyUser = (await getData(event.senderID)).money;
 
+    if (args[0] !== "ريو" || args[1] !== "بكج") {
+        return api.sendMessage("استخدم الأمر بشكل صحيح: ريو بكج", event.senderID);
+    }
+
     if (moneyUser < 1000) {
         return api.sendMessage("عذرًا، لا تملك ما يكفي من الأموال للقيام بهذا الإجراء.", event.senderID, event.messageID);
     } else {
-        await setData(event.senderID, { money: moneyUser - 0 });
+        await setData(event.senderID, { money: moneyUser - 1000 });
         var callback = () => api.sendMessage({
             body: `شكرًا وتهانينا على حصولك على تصميم عشوائي! نأمل أن يكون النتيجة مرضية وتلبي توقعاتك. بالنسبة للخصم الذي تم تطبيقه على حسابك بقيمة 20 عملة M.V، يرجى التواصل مع فريق الدعم لدينا لمعرفة المزيد من التفاصيل والتوضيحات. نحن هنا لمساعدتك وضمان رضاك التام.⚜️🔸`,
             attachment: fs.createReadStream(__dirname + "/cache/ZiaRein1.jpg")

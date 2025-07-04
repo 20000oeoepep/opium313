@@ -1,15 +1,15 @@
 const fs = require("fs");
 
-// --- Game State Management ---
+// --- إدارة حالة اللعبة ---
 let gameData = {};
-const GAME_DATA_FILE = __dirname + "/werewolf_game_data.json";
+const GAME_DATA_FILE = __dirname + "/werewolf_game_data.json"; // مسار ملف حفظ بيانات اللعبة
 
 function loadGameData() {
     try {
         gameData = JSON.parse(fs.readFileSync(GAME_DATA_FILE, "utf8"));
     } catch (e) {
-        console.error("Failed to load game data or file does not exist. Initializing new data.", e);
-        gameData = {}; // Initialize if file doesn't exist or is invalid
+        console.error("فشل تحميل بيانات اللعبة أو الملف غير موجود. تهيئة بيانات جديدة.", e);
+        gameData = {}; // تهيئة إذا كان الملف غير موجود أو غير صالح
     }
 }
 
@@ -17,54 +17,55 @@ function saveGameData() {
     try {
         fs.writeFileSync(GAME_DATA_FILE, JSON.stringify(gameData, null, 2), "utf8");
     } catch (e) {
-        console.error("Failed to save game data:", e);
+        console.error("فشل حفظ بيانات اللعبة:", e);
     }
 }
 
-loadGameData(); // Load data when the bot starts
+loadGameData(); // تحميل البيانات عند بدء تشغيل البوت
 
-// --- Game Configuration ---
+// --- إعدادات اللعبة ---
 const gameConfig = {
-    minPlayers: 4, // Minimum players required to start a game
-    maxPlayers: 15, // Maximum players allowed
-    adminID: "100015903097543", // <<<<< REPLACE WITH THE ADMIN'S FACEBOOK USER ID
-    roles: [
+    minPlayers: 4, // الحد الأدنى لعدد اللاعبين المطلوبين لبدء اللعبة
+    maxPlayers: 15, // الحد الأقصى لعدد اللاعبين المسموح به
+    adminID: "100015903097543", // <<<<< يرجى التغيير إلى معرف فيسبوك الخاص بالمسؤول الفعلي
+    roles: [ // تعريف الأدوار المتاحة (قاتل واحد، شرطي واحد، والباقي قرويون)
         { name: "قاتل", type: "killer" },
         { name: "شرطي", type: "police" },
         { name: "قروي", type: "villager" }
     ],
-    votingTime: 60000 // 60 seconds for voting
+    votingTime: 60000 // 60 ثانية للتصويت
 };
 
 module.exports.config = {
     name: "werewolf_game",
-    version: "2.1.0", // Updated version
+    version: "2.1.0", // رقم الإصدار المحدث
     hasPermssion: 0,
-    credits: "Your Name", // Change this to your name
-    description: "A custom Werewolf-like game with admin controls.",
+    credits: "Your Name", // غيّر هذا إلى اسمك
+    description: "لعبة مستوحاة من Werewolf مع تحكمات إدارية.",
     commandCategory: "Game",
     usages: "المشاركين | ابدا | ابدا اللعبة | ابدا تصويت | إلغاء اللعبة",
     cooldowns: 5,
 };
 
-// --- Helper Functions ---
+// --- وظائف مساعدة ---
 
 /**
- * Assigns roles (1 Killer, 1 Police, rest Villagers) to players.
- * @param {Array} players - Array of player objects {userID, name}.
- * @returns {Array} - Players with assigned roles and numbers.
+ * يوزع الأدوار (قاتل واحد، شرطي واحد، والباقي قرويون) على اللاعبين.
+ * @param {Array} players - مصفوفة من كائنات اللاعبين {userID, name}.
+ * @returns {Array} - اللاعبون مع أدوارهم وأرقامهم المخصصة.
  */
 function assignRoles(players) {
-    // Create a mutable copy of players
+    // إنشاء نسخة قابلة للتعديل من اللاعبين وخلطهم
     let shuffledPlayers = [...players].sort(() => 0.5 - Math.random());
 
     let assignedPlayers = [];
     let killerAssigned = false;
     let policeAssigned = false;
 
+    // تعيين الأدوار بناءً على الترتيب العشوائي الأولي
     for (let i = 0; i < players.length; i++) {
         let player = shuffledPlayers[i];
-        let role = "قروي"; // Default role is Villager
+        let role = "قروي"; // الدور الافتراضي هو قروي
 
         if (!killerAssigned) {
             role = "قاتل";
@@ -78,13 +79,13 @@ function assignRoles(players) {
             userID: player.userID,
             name: player.name,
             role: role,
-            playerNumber: i + 1, // Assign player numbers sequentially after shuffling
+            playerNumber: i + 1, // تعيين أرقام اللاعبين بالتسلسل بعد الخلط
             isAlive: true,
             votes: 0
         });
     }
 
-    // Shuffle assigned players again to randomize player numbers visually
+    // خلط اللاعبين المعينين مرة أخرى لتوزيع الأرقام بشكل عشوائي ظاهريًا
     assignedPlayers.sort(() => 0.5 - Math.random());
     assignedPlayers.forEach((p, index) => p.playerNumber = index + 1);
 
@@ -93,10 +94,10 @@ function assignRoles(players) {
 
 
 /**
- * Generates a short story for the beginning of the game or a new day's outcome.
- * @param {string} type - 'start' or 'day_outcome' or 'police_wrong_guess'.
- * @param {object} gameInfo - Current game state information (e.g., killed player, protected player).
- * @returns {string} - The story text.
+ * ينشئ قصة قصيرة لبداية اللعبة أو لنتائج اليوم الجديد.
+ * @param {string} type - 'start' أو 'day_outcome' أو 'police_wrong_guess'.
+ * @param {object} gameInfo - معلومات حالة اللعبة الحالية (مثل اللاعب المقتول، اللاعب المحمي).
+ * @returns {string} - نص القصة.
  */
 function generateStory(type, gameInfo = {}) {
     let story = "";
@@ -116,7 +117,7 @@ function generateStory(type, gameInfo = {}) {
     } else if (type === "day_outcome") {
         const { killedPlayer, protectedPlayer, killerChosenNumber, policeChosenNumber } = gameInfo;
 
-        if (killedPlayer) { // Someone was targeted
+        if (killedPlayer) { // تم استهداف شخص
             if (protectedPlayer && killerChosenNumber === policeChosenNumber) {
                 story = `
                     في صباح يوم ${randomDay}، وبينما كان القاتل يتربص بضحية جديدة،
@@ -133,7 +134,7 @@ function generateStory(type, gameInfo = {}) {
                     فليرقد بسلام.
                 `;
             }
-        } else { // No one was killed or targeted
+        } else { // لم يتم قتل أو استهداف أحد
             story = `
                 في صباح يوم ${randomDay}، يبدو أن القرية قد نجت من ليلة هادئة.
                 لم يقع أي ضحايا هذه الليلة...
@@ -154,18 +155,18 @@ function generateStory(type, gameInfo = {}) {
 }
 
 /**
- * Sends a typing indicator and then the message.
- * @param {object} api - The API object.
- * @param {string} threadID - The thread ID.
- * @param {string} message - The message to send.
- * @param {number} delayMs - Delay in milliseconds before sending the message.
+ * يرسل مؤشر الكتابة ثم الرسالة.
+ * @param {object} api - كائن API.
+ * @param {string} threadID - معرف المحادثة.
+ * @param {string} message - الرسالة المراد إرسالها.
+ * @param {number} delayMs - التأخير بالمللي ثانية قبل إرسال الرسالة.
  */
 function sendTypingMessage(api, threadID, message, delayMs = 2000) {
     return new Promise(resolve => {
         api.sendTypingIndicator(threadID, () => {
             setTimeout(() => {
                 api.sendMessage(message, threadID, (err, info) => {
-                    if (err) console.error("Error sending message:", err);
+                    if (err) console.error("خطأ في إرسال الرسالة:", err);
                     resolve(info);
                 });
             }, delayMs);
@@ -173,7 +174,7 @@ function sendTypingMessage(api, threadID, message, delayMs = 2000) {
     });
 }
 
-// --- Main Game Logic Functions ---
+// --- وظائف منطق اللعبة الرئيسية ---
 
 async function startGamePhase1(api, threadID) {
     const game = gameData[threadID];
@@ -191,7 +192,7 @@ async function startGamePhase1(api, threadID) {
     }
 
     const assignedPlayers = assignRoles(currentPlayers);
-    game.players = {}; // Reset players object
+    game.players = {}; // إعادة تعيين كائن اللاعبين
     assignedPlayers.forEach(p => {
         game.players[p.userID] = p;
     });
@@ -201,12 +202,12 @@ async function startGamePhase1(api, threadID) {
 
     saveGameData();
 
-    // Inform players privately about their roles
+    // إبلاغ اللاعبين سريًا بأدوارهم
     for (const player of assignedPlayers) {
         await api.sendMessage(
             `مرحباً ${player.name}!\nشخصيتك في اللعبة هي: **${player.role}**.\nرقمك في اللعبة هو: **${player.playerNumber}**.`,
-            player.userID
-        ).catch(e => console.error(`Error sending private message to ${player.name} (${player.userID}):`, e));
+            player.userID // <--- هنا يتم إرسال الرسالة بشكل خاص لكل لاعب
+        ).catch(e => console.error(`خطأ في إرسال رسالة خاصة إلى ${player.name} (${player.userID}):`, e));
     }
 
     api.sendMessage(`تم توزيع الأدوار للمشاركين!`, threadID);
@@ -219,13 +220,13 @@ async function startGamePhase2(api, threadID) {
         return api.sendMessage("الأدوار لم توزع بعد أو اللعبة ليست جاهزة للبدء.", threadID);
     }
 
-    game.status = "night_killer_phase"; // First phase: Killer chooses
+    game.status = "night_killer_phase"; // المرحلة الأولى: القاتل يختار
     saveGameData();
 
-    // Start the game story
+    // بدء قصة اللعبة
     await sendTypingMessage(api, threadID, generateStory("start"), 3000);
 
-    // Prompt Killer to choose victim
+    // مطالبة القاتل باختيار الضحية
     await promptKiller(api, threadID);
 
     saveGameData();
@@ -234,13 +235,13 @@ async function startGamePhase2(api, threadID) {
 async function promptKiller(api, threadID) {
     const game = gameData[threadID];
     if (!game || !game.killer || !game.killer.isAlive) {
-        // If killer is dead or not in game, directly proceed to outcome or next phase
+        // إذا كان القاتل ميتاً أو غير موجود في اللعبة، انتقل مباشرة إلى النتائج
         return processNightOutcome(api, threadID);
     }
 
     const alivePlayers = Object.values(game.players).filter(p => p.isAlive && p.userID !== game.killer.userID);
     if (alivePlayers.length === 0) {
-        // All other players are dead, Killer wins!
+        // جميع اللاعبين الآخرين ميتون، القاتل يفوز!
         api.sendMessage(`لم يتبق أحد ليقتله القاتل! 🎉 **لقد فاز القاتل!**`, threadID);
         delete gameData[threadID];
         saveGameData();
@@ -254,8 +255,8 @@ async function promptKiller(api, threadID) {
 
     game.currentAction = {
         type: "killer_choice",
-        promptMessageID: null, // To store message ID for replies
-        threadID: threadID // Store threadID for PM response handling
+        promptMessageID: null, // لتخزين معرف الرسالة للردود
+        threadID: threadID // تخزين معرف المحادثة للتعامل مع الاستجابة الخاصة
     };
     saveGameData();
 
@@ -269,7 +270,7 @@ async function promptKiller(api, threadID) {
             game.currentAction.promptMessageID = info.messageID;
             saveGameData();
         } else {
-            console.error("Error sending killer prompt:", err);
+            console.error("خطأ في إرسال مطالبة القاتل:", err);
         }
     });
 
@@ -279,13 +280,13 @@ async function promptKiller(api, threadID) {
 async function promptPolice(api, threadID) {
     const game = gameData[threadID];
     if (!game || !game.police || !game.police.isAlive) {
-        // If police is dead or not in game, directly proceed to outcome
+        // إذا كان الشرطي ميتاً أو غير موجود في اللعبة، انتقل مباشرة إلى النتائج
         return processNightOutcome(api, threadID);
     }
 
     const alivePlayers = Object.values(game.players).filter(p => p.isAlive);
     if (alivePlayers.length === 0) {
-        return api.sendMessage("لا يوجد أحد ليقوم الشرطي بحمايته. تنتهي اللعبة.", threadID); // Should not happen if killer already chose
+        return api.sendMessage("لا يوجد أحد ليقوم الشرطي بحمايته. تنتهي اللعبة.", threadID); // يجب ألا يحدث هذا إذا كان القاتل قد اختار بالفعل
     }
 
     let playerList = "الرجاء قم باختيار الشخص الذي تريد حمايته من خلال رقمه:\n";
@@ -310,7 +311,7 @@ async function promptPolice(api, threadID) {
             game.currentAction.promptMessageID = info.messageID;
             saveGameData();
         } else {
-            console.error("Error sending police prompt:", err);
+            console.error("خطأ في إرسال مطالبة الشرطي:", err);
         }
     });
 
@@ -332,31 +333,31 @@ async function processNightOutcome(api, threadID) {
         policeChosenNumber: policeChosenPlayer ? policeChosenPlayer.playerNumber : null
     };
 
-    if (killerChosenPlayer) { // Killer chose someone
+    if (killerChosenPlayer) { // القاتل اختار شخصاً
         gameInfo.killedPlayer = killerChosenPlayer;
         if (policeChosenPlayer && killerChosenPlayer.playerNumber === policeChosenPlayer.playerNumber) {
-            // Protected!
+            // محمي!
             gameInfo.protectedPlayer = policeChosenPlayer;
             await sendTypingMessage(api, threadID, generateStory("day_outcome", gameInfo), 3000);
-            api.sendMessage(`✅`, threadID); // Emoji for protected
+            api.sendMessage(`✅`, threadID); // إيموجي للمحمي
         } else {
-            // Not protected, or police chose someone else
+            // غير محمي، أو الشرطي اختار شخصاً آخر
             killedPlayer = killerChosenPlayer;
             killedPlayer.isAlive = false;
             gameInfo.killedPlayer = killedPlayer;
-            if (policeChosenPlayer) { // Police was active but chose wrong
+            if (policeChosenPlayer) { // الشرطي كان نشطاً ولكنه اختار خطأ
                  await sendTypingMessage(api, threadID, generateStory("police_wrong_guess", gameInfo), 3000);
-            } else { // Police was not active or didn't choose (or dead)
+            } else { // الشرطي لم يكن نشطاً أو لم يختر (أو ميت)
                  await sendTypingMessage(api, threadID, generateStory("day_outcome", gameInfo), 3000);
             }
-            api.sendMessage(`✅`, threadID); // Emoji for killed
+            api.sendMessage(`✅`, threadID); // إيموجي للمقتول
             api.sendMessage(`💀 لقد مات **${killedPlayer.name}** (رقم ${killedPlayer.playerNumber}) ولم يعد بإمكانه المشاركة.`, threadID);
             api.sendMessage(`أيها ${killedPlayer.role} (رقم ${killedPlayer.playerNumber})، لقد تم قتلك. لم تعد مشاركاً في اللعبة.`, killedPlayer.userID)
-                .catch(e => console.error(`Error sending death message to ${killedPlayer.name}:`, e));
+                .catch(e => console.error(`خطأ في إرسال رسالة الموت إلى ${killedPlayer.name}:`, e));
         }
-    } else { // Killer didn't choose a valid target or chose no one
-        await sendTypingMessage(api, threadID, generateStory("day_outcome"), 3000); // No one died story
-        api.sendMessage(`✅`, threadID); // Emoji for no death
+    } else { // القاتل لم يختر هدفاً صالحاً أو لم يختر أحداً
+        await sendTypingMessage(api, threadID, generateStory("day_outcome"), 3000); // قصة عدم موت أحد
+        api.sendMessage(`✅`, threadID); // إيموجي لعدم الموت
         api.sendMessage("لم يقتل أحد هذه الليلة! يبدو أن القاتل كان نائمًا أو لم يتمكن من اختيار ضحيته.", threadID);
     }
 
@@ -364,9 +365,9 @@ async function processNightOutcome(api, threadID) {
     game.policeChoice = null;
     saveGameData();
 
-    // Check for game end conditions after night outcome
+    // التحقق من شروط نهاية اللعبة بعد نتائج الليل
     checkGameEnd(api, threadID);
-    if (gameData[threadID] && gameData[threadID].status !== "game_over") { // Only prompt for voting if game is still active
+    if (gameData[threadID] && gameData[threadID].status !== "game_over") { // فقط اطلب التصويت إذا كانت اللعبة لا تزال نشطة
         api.sendMessage(`أيها المسؤول، قل 'ابدا تصويت' لبدء مرحلة التصويت.`, threadID);
     }
 }
@@ -378,14 +379,14 @@ async function promptVoting(api, threadID) {
 
     const alivePlayers = Object.values(game.players).filter(p => p.isAlive);
     if (alivePlayers.length <= 1) {
-        return checkGameEnd(api, threadID); // Not enough players for voting, check end game.
+        return checkGameEnd(api, threadID); // عدد اللاعبين غير كافٍ للتصويت، تحقق من نهاية اللعبة.
     }
 
     let playerList = "الرجاء من الجميع التصويت على القاتل المشتبه به!\n";
     playerList += "ردوا على هذه الرسالة برقم الشخص الذي تشكون به:\n";
     alivePlayers.forEach(p => {
         playerList += `${p.playerNumber}. ${p.name}\n`;
-        p.votes = 0; // Reset votes for new round
+        p.votes = 0; // إعادة تعيين الأصوات لجولة جديدة
     });
 
     game.currentAction = {
@@ -397,39 +398,39 @@ async function promptVoting(api, threadID) {
     };
     saveGameData();
 
-    // Send private voting prompts
+    // إرسال طلبات التصويت الخاصة
     for (const player of alivePlayers) {
         api.sendMessage(playerList, player.userID, (err, info) => {
             if (!err && info) {
-                // Store the message ID for each player's private voting prompt
+                // تخزين معرف الرسالة لطلب التصويت الخاص بكل لاعب
                 if (!game.currentAction.promptMessageID_private) {
                     game.currentAction.promptMessageID_private = {};
                 }
                 game.currentAction.promptMessageID_private[player.userID] = info.messageID;
                 saveGameData();
             } else {
-                console.error(`Error sending voting prompt to ${player.name}:`, err);
+                console.error(`خطأ في إرسال طلب التصويت إلى ${player.name}:`, err);
             }
         });
     }
 
     api.sendMessage(`بدأ التصويت على القاتل! لديكم ${gameConfig.votingTime / 1000} ثانية للتصويت سرياً عبر الخاص.`, threadID);
 
-    // Set a timeout for processing votes
-    setTimeout(() => processVotingOutcome(api, threadID), gameConfig.votingTime + 2000); // Add a small buffer
+    // تعيين مهلة لمعالجة الأصوات
+    setTimeout(() => processVotingOutcome(api, threadID), gameConfig.votingTime + 2000); // إضافة مؤقت صغير
 }
 
 async function processVotingOutcome(api, threadID) {
     const game = gameData[threadID];
-    if (!game || game.status !== "voting_active") return; // Ensure voting is active
+    if (!game || game.status !== "voting_active") return; // التأكد من أن التصويت نشط
 
     let maxVotes = 0;
     let suspectedPlayers = [];
-    let voteCounts = {}; // To store actual counts for display
+    let voteCounts = {}; // لتخزين العدد الفعلي للأصوات للعرض
 
     const alivePlayers = Object.values(game.players).filter(p => p.isAlive);
 
-    // Gather vote counts
+    // جمع عدد الأصوات
     alivePlayers.forEach(p => {
         voteCounts[p.playerNumber] = p.votes;
         if (p.votes > maxVotes) {
@@ -440,17 +441,17 @@ async function processVotingOutcome(api, threadID) {
         }
     });
 
-    game.currentAction = null; // Clear voting action
+    game.currentAction = null; // مسح إجراء التصويت
     saveGameData();
 
     if (maxVotes === 0) {
         api.sendMessage("لم يصوت أحد هذه الجولة أو لم يتم جمع أصوات كافية! القاتل ينجو ليلة أخرى...", threadID);
-        game.status = "night_killer_phase"; // No votes, killer gets another turn
+        game.status = "night_killer_phase"; // لا توجد أصوات، القاتل يحصل على دور آخر
         saveGameData();
         return promptKiller(api, threadID);
     }
 
-    // Sort players by vote count for display
+    // فرز اللاعبين حسب عدد الأصوات للعرض
     const sortedVoteDisplay = alivePlayers.sort((a, b) => b.votes - a.votes)
                                          .map(p => `${p.name} (رقم ${p.playerNumber}): ${p.votes} صوتًا`)
                                          .join("\n");
@@ -460,7 +461,7 @@ async function processVotingOutcome(api, threadID) {
     setTimeout(async () => {
         if (suspectedPlayers.length > 1) {
             api.sendMessage(`تعادل في الأصوات! لا يوجد إعدام هذه الليلة.`, threadID);
-            game.status = "night_killer_phase"; // Tie, killer gets another turn
+            game.status = "night_killer_phase"; // تعادل، القاتل يحصل على دور آخر
             saveGameData();
             return promptKiller(api, threadID);
         }
@@ -472,12 +473,12 @@ async function processVotingOutcome(api, threadID) {
             if (accusedPlayer.role === "قاتل") {
                 api.sendMessage(`🎉 مبروك! لقد كان **${accusedPlayer.name}** هو القاتل! لقد تم كشفه وتمت إدانته!`, threadID);
                 api.sendMessage(`**انتهت اللعبة!** لقد فاز القرويون!`, threadID);
-                delete gameData[threadID]; // End game
+                delete gameData[threadID]; // إنهاء اللعبة
             } else if (accusedPlayer.role === "شرطي") {
                 api.sendMessage(`💔 للأسف، لقد تم تصويت القرويين على قتل **شرطيهم** الذي يحميكم، **${accusedPlayer.name}**! لقد أعدمتم شخصًا بريئًا ومفيدًا!`, threadID);
                 accusedPlayer.isAlive = false;
                 api.sendMessage(`أيها ${accusedPlayer.role} (رقم ${accusedPlayer.playerNumber})، لقد تم إعدامك ظلماً. لم تعد مشاركاً في اللعبة.`, accusedPlayer.userID)
-                    .catch(e => console.error(`Error sending death message to ${accusedPlayer.name}:`, e));
+                    .catch(e => console.error(`خطأ في إرسال رسالة الموت إلى ${accusedPlayer.name}:`, e));
                 saveGameData();
                 checkGameEnd(api, threadID);
                 if (gameData[threadID] && gameData[threadID].status !== "game_over") {
@@ -485,11 +486,11 @@ async function processVotingOutcome(api, threadID) {
                     api.sendMessage(`ليل جديد يحل على القرية... القاتل يختار ضحيته.`, threadID);
                     promptKiller(api, threadID);
                 }
-            } else { // Accused is a Villager
+            } else { // المتهم هو قروي
                 api.sendMessage(`💔 للأسف، **${accusedPlayer.name}** لم يكن القاتل. لقد أعدمتم شخصًا قروياً عادياً وبسيطاً!`, threadID);
                 accusedPlayer.isAlive = false;
                 api.sendMessage(`أيها ${accusedPlayer.role} (رقم ${accusedPlayer.playerNumber})، لقد تم إعدامك ظلماً. لم تعد مشاركاً في اللعبة.`, accusedPlayer.userID)
-                    .catch(e => console.error(`Error sending death message to ${accusedPlayer.name}:`, e));
+                    .catch(e => console.error(`خطأ في إرسال رسالة الموت إلى ${accusedPlayer.name}:`, e));
                 saveGameData();
                 checkGameEnd(api, threadID);
                 if (gameData[threadID] && gameData[threadID].status !== "game_over") {
@@ -509,13 +510,13 @@ function checkGameEnd(api, threadID) {
 
     const alivePlayers = Object.values(game.players).filter(p => p.isAlive);
     const aliveKillers = alivePlayers.filter(p => p.role === "قاتل");
-    const aliveCivilians = alivePlayers.filter(p => p.role !== "قاتل"); // This now includes Police as civilian side
+    const aliveCivilians = alivePlayers.filter(p => p.role !== "قاتل"); // هذا يشمل الآن الشرطي كجزء من جانب المدنيين
 
     if (aliveKillers.length === 0) {
         api.sendMessage("🎉 مبروك! تم القضاء على القاتل. **لقد فاز القرويون!**", threadID);
         delete gameData[threadID];
-        game.status = "game_over"; // Set status to prevent further actions
-    } else if (aliveKillers.length >= aliveCivilians.length) { // Killer wins if number of killers >= number of civilians
+        game.status = "game_over"; // تعيين الحالة لمنع المزيد من الإجراءات
+    } else if (aliveKillers.length >= aliveCivilians.length) { // يفوز القاتل إذا كان عدد القتلة أكبر من أو يساوي عدد المدنيين
         api.sendMessage("💔 يا للأسف! عدد القتلة أصبح مساوياً أو أكثر من عدد القرويين. **لقد فاز القاتل!**", threadID);
         delete gameData[threadID];
         game.status = "game_over";
@@ -523,15 +524,15 @@ function checkGameEnd(api, threadID) {
     saveGameData();
 }
 
-// --- Module Exports ---
+// --- تصدير الوحدة النمطية ---
 
 module.exports.handleEvent = async function({ api, event }) {
     const { threadID, messageID, senderID, body, isGroup, messageReply } = event;
 
-    // Check if the game is active in this thread
+    // التحقق مما إذا كانت اللعبة نشطة في هذه المحادثة
     const game = gameData[threadID];
 
-    // --- Joining the game ---
+    // --- الانضمام إلى اللعبة ---
     if (body && (body.toLowerCase() === "تم" || body.toLowerCase() === "نعم") &&
         game && game.status === "joining" &&
         messageReply && messageReply.messageID === game.joinMessageID) {
@@ -545,23 +546,23 @@ module.exports.handleEvent = async function({ api, event }) {
         }
 
         api.getUserInfo(senderID, (err, info) => {
-            if (err) return console.error("Error getting user info:", err);
+            if (err) return console.error("خطأ في الحصول على معلومات المستخدم:", err);
             const userName = info[senderID].name;
             game.players[senderID] = { userID: senderID, name: userName };
             saveGameData();
             api.sendMessage(`لقد انضم **${userName}** إلى اللعبة! العدد الحالي: ${Object.keys(game.players).length}`, threadID);
             api.sendMessage(`الرجاء قم بتفقد طلبات المراسلة (أو رسائل السباام) لتلقي دورك سرياً عندما تبدأ اللعبة.`, senderID)
-                .catch(e => console.error("Error sending private message confirmation:", e));
+                .catch(e => console.error("خطأ في إرسال تأكيد الرسالة الخاصة:", e));
         });
         return;
     }
 
-    // --- Private message actions (Killer/Police choices & Voting) ---
-    if (!isGroup) { // This event is a private message from a player
-        // Find which game this private message belongs to (if any)
+    // --- الإجراءات في الرسائل الخاصة (اختيارات القاتل/الشرطي والتصويت) ---
+    if (!isGroup) { // هذا الحدث هو رسالة خاصة من لاعب
+        // البحث عن اللعبة التي تنتمي إليها هذه الرسالة الخاصة (إن وجدت)
         const activeGameThreadID = Object.keys(gameData).find(tid =>
             gameData[tid] && gameData[tid].players[senderID] &&
-            gameData[tid].currentAction && gameData[tid].currentAction.threadID === tid && // Ensure it's for this specific game
+            gameData[tid].currentAction && gameData[tid].currentAction.threadID === tid && // التأكد من أنها لهذه اللعبة المحددة
             ((gameData[tid].currentAction.promptMessageID && gameData[tid].currentAction.promptMessageID === messageReply?.messageID) ||
              (gameData[tid].currentAction.promptMessageID_private && gameData[tid].currentAction.promptMessageID_private[senderID] === messageReply?.messageID))
         );
@@ -581,14 +582,14 @@ module.exports.handleEvent = async function({ api, event }) {
                 return api.sendMessage("الرقم الذي اخترته غير صحيح أو اللاعب ميت. الرجاء اختيار رقم لاعب حي.", senderID);
             }
 
-            // Killer's choice
+            // اختيار القاتل
             if (gameInQuestion.currentAction.type === "killer_choice" && player.role === "قاتل" && player.isAlive) {
                 if (targetPlayer.userID === player.userID) {
                     return api.sendMessage("لا يمكنك قتل نفسك!", senderID);
                 }
                 gameInQuestion.killerChoice = chosenNumber;
                 api.sendMessage(`تم اختيارك للضحية رقم ${chosenNumber}: ${targetPlayer.name}.`, senderID);
-                // After killer chooses, immediately prompt police if alive, otherwise process outcome
+                // بعد أن يختار القاتل، قم فوراً بطلب الشرطي إذا كان حياً، وإلا قم بمعالجة النتائج
                 if (gameInQuestion.police && gameInQuestion.police.isAlive) {
                     gameInQuestion.status = "night_police_phase";
                     saveGameData();
@@ -600,24 +601,24 @@ module.exports.handleEvent = async function({ api, event }) {
                     api.sendMessage(`القاتل اختار ضحيته... لا يوجد شرطي لحماية أحد. نترقب نتائج هذه الليلة.`, activeGameThreadID);
                     setTimeout(() => processNightOutcome(api, activeGameThreadID), 3000);
                 }
-                gameInQuestion.currentAction = null; // Clear action after processing
+                gameInQuestion.currentAction = null; // مسح الإجراء بعد المعالجة
                 saveGameData();
                 return;
             }
 
-            // Police's choice
+            // اختيار الشرطي
             if (gameInQuestion.currentAction.type === "police_choice" && player.role === "شرطي" && player.isAlive) {
                 gameInQuestion.policeChoice = chosenNumber;
                 api.sendMessage(`تم اختيارك لحماية الشخص رقم ${chosenNumber}: ${targetPlayer.name}.`, senderID);
                 gameInQuestion.status = "night_outcome_processing";
-                gameInQuestion.currentAction = null; // Clear action after processing
+                gameInQuestion.currentAction = null; // مسح الإجراء بعد المعالجة
                 saveGameData();
                 api.sendMessage(`الشرطي قام بواجبه... نترقب نتائج هذه الليلة.`, activeGameThreadID);
                 setTimeout(() => processNightOutcome(api, activeGameThreadID), 3000);
                 return;
             }
 
-            // Voting
+            // التصويت
             if (gameInQuestion.currentAction.type === "voting" && player.isAlive) {
                 if (gameInQuestion.currentAction.votedUsers.includes(senderID)) {
                     return api.sendMessage("لقد قمت بالتصويت بالفعل في هذه الجولة.", senderID);
@@ -629,19 +630,19 @@ module.exports.handleEvent = async function({ api, event }) {
                 return;
             }
 
-            // Fallback for unauthorized/invalid private actions
+            // Fallback للإجراءات الخاصة غير المصرح بها/غير الصالحة
             api.sendMessage("ليس دورك الآن أو أنك لست مخولاً بالقيام بهذا الإجراء.", senderID);
         }
         return;
     }
 
-    // --- Group chat commands ---
+    // --- أوامر الدردشة الجماعية ---
     if (isGroup) {
-        // Your original 'women' command, if you want to keep it
+        // أمر 'women' الأصلي، إذا كنت ترغب في الاحتفاظ به
         if (body && (body.toLowerCase().includes("women") || body.includes("☕"))) {
             const msg = {
                 body: "hahaha Women 🤣",
-                attachment: fs.createReadStream(__dirname + `/noprefix/wn.mp4`) // Make sure this path is correct
+                attachment: fs.createReadStream(__dirname + `/noprefix/wn.mp4`) // تأكد من صحة هذا المسار
             };
             api.sendMessage(msg, threadID, messageID);
             api.setMessageReaction("☕", event.messageID, (err) => {}, true);
@@ -655,19 +656,19 @@ module.exports.run = async function({ api, event, args }) {
     const { threadID, messageID, senderID } = event;
     const command = args[0] ? args[0].toLowerCase() : "";
 
-    // --- Admin-only commands ---
+    // --- أوامر المسؤول فقط ---
     const isAdmin = senderID === gameConfig.adminID;
 
-    // Command: المشاركين (Initiate Game)
+    // الأمر: المشاركين (بدء اللعبة)
     if (command === "المشاركين" && isAdmin) {
         if (gameData[threadID] && gameData[threadID].status !== "game_over") {
             return api.sendMessage("يوجد بالفعل لعبة قيد التشغيل أو في انتظار الانضمام في هذه المجموعة. الرجاء الانتظار أو إلغاء اللعبة الحالية.", threadID);
         }
 
         gameData[threadID] = {
-            status: "joining", // 'joining', 'roles_assigned', 'night_killer_phase', etc.
+            status: "joining", // 'joining', 'roles_assigned', 'night_killer_phase', إلخ.
             players: {}, // { userID: { name, role, playerNumber, isAlive, votes } }
-            joinMessageID: null, // To track the message players reply to for joining
+            joinMessageID: null, // لتتبع الرسالة التي يرد عليها اللاعبون للانضمام
             killer: null,
             police: null,
             killerChoice: null,
@@ -690,17 +691,17 @@ module.exports.run = async function({ api, event, args }) {
         return;
     }
 
-    // Command: ابدا (Admin starts role distribution)
+    // الأمر: ابدا (المسؤول يبدأ توزيع الأدوار)
     if (command === "ابدا" && isAdmin) {
         if (gameData[threadID] && gameData[threadID].status === "joining") {
-            startGamePhase1(api, threadID);
+            startGamePhase1(api, threadID); // هذه الوظيفة هي التي ترسل الأدوار الخاصة
         } else {
             api.sendMessage("اللعبة ليست في مرحلة الانضمام لبدء توزيع الأدوار. تأكد من أنك قلت 'المشاركين' أولاً.", threadID);
         }
         return;
     }
 
-    // Command: ابدا اللعبة (Admin starts game story/night phase)
+    // الأمر: ابدا اللعبة (المسؤول يبدأ قصة اللعبة/مرحلة الليل)
     if ((command === "ابدا_اللعبة" || event.body === "ابدا اللعبة") && isAdmin) {
         if (gameData[threadID] && gameData[threadID].status === "roles_assigned") {
             startGamePhase2(api, threadID);
@@ -708,8 +709,8 @@ module.exports.run = async function({ api, event, args }) {
              api.sendMessage("اللعبة بدأت بالفعل، القاتل يختار ضحيته.", threadID);
         }
         else if (gameData[threadID] && (gameData[threadID].status === "day_voting_phase" || gameData[threadID].status === "night_outcome_processing" || gameData[threadID].status === "night_police_phase")) {
-            // This means a new day/night cycle
-            gameData[threadID].status = "night_killer_phase"; // Reset to killer phase for new round
+            // هذا يعني دورة يوم/ليل جديدة
+            gameData[threadID].status = "night_killer_phase"; // إعادة تعيين إلى مرحلة القاتل لدورة جديدة
             saveGameData();
             api.sendMessage("ليل جديد يحل على القرية... القاتل يختار ضحيته.", threadID);
             promptKiller(api, threadID);
@@ -720,14 +721,14 @@ module.exports.run = async function({ api, event, args }) {
         return;
     }
 
-    // Command: ابدا تصويت (Admin starts voting phase)
+    // الأمر: ابدا تصويت (المسؤول يبدأ مرحلة التصويت)
     if ((command === "ابدا_تصويت" || event.body === "ابدا تصويت") && isAdmin) {
         if (gameData[threadID] && (gameData[threadID].status === "night_outcome_processing" || gameData[threadID].status === "night_killer_phase" || gameData[threadID].status === "night_police_phase" || gameData[threadID].status === "roles_assigned")) {
             if (gameData[threadID].status === "night_outcome_processing") {
                  api.sendMessage("انتظر حتى تكتمل أحداث الليلة قبل بدء التصويت.", threadID);
                  return;
             }
-            gameData[threadID].status = "voting_active"; // Set status to voting
+            gameData[threadID].status = "voting_active"; // تعيين الحالة إلى التصويت النشط
             saveGameData();
             promptVoting(api, threadID);
         } else {
@@ -736,7 +737,7 @@ module.exports.run = async function({ api, event, args }) {
         return;
     }
 
-    // Command: إلغاء اللعبة (Admin cancels game)
+    // الأمر: إلغاء اللعبة (المسؤول يلغي اللعبة)
     if ((command === "إلغاء_اللعبة" || event.body === "إلغاء اللعبة") && isAdmin) {
         if (gameData[threadID]) {
             delete gameData[threadID];
@@ -748,7 +749,7 @@ module.exports.run = async function({ api, event, args }) {
         return;
     }
 
-    // Non-admin attempts to use admin commands
+    // محاولات غير المسؤولين لاستخدام أوامر المسؤول
     if (!isAdmin && (command === "المشاركين" || command === "ابدا" || command === "ابدا_اللعبة" || event.body === "ابدا اللعبة" || command === "ابدا_تصويت" || event.body === "ابدا تصويت" || command === "إلغاء_اللعبة" || event.body === "إلغاء اللعبة")) {
         api.sendMessage("أنت لست المسؤول عن هذه اللعبة.", threadID, messageID);
     }

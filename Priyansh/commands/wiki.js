@@ -6,12 +6,12 @@ const MIN_PLAYERS = 3; // الحد الأدنى لعدد اللاعبين لبد
 
 // Role definitions
 const GAME_ROLES = {
-    killer: { name: "القاتل", team: "evil", description: "أنت القاتل! مهمتك هي القضاء على جميع القرويين والشرطي. اختر ضحيتك سراً في كل ليلة." },
-    cop: { name: "الشرطي", team: "good", description: "أنت الشرطي! مهمتك هي حماية الأبرياء. في كل ليلة، اختر شخصًا لحمايته من هجوم القاتل." },
-    villager: { name: "قروي", team: "good", description: "أنت قروي عادي. مهمتك هي اكتشاف القاتل والتصويت لإعدامه." },
-    farmer: { name: "مزارع", team: "good", description: "أنت مزارع بسيط. مهمتك هي البقاء على قيد الحياة والمساعدة في كشف القاتل." },
-    chef: { name: "طباخ", team: "good", description: "أنت طباخ ماهر. مهمتك هي البقاء على قيد الحياة والمساعدة في كشف القاتل." },
-    builder: { name: "عامل بناء", team: "good", description: "أنت عامل بناء قوي. مهمتك هي البقاء على قيد الحياة والمساعدة في كشف القاتل." },
+    werewolf: { name: "المستذئب", team: "evil", description: "أنت المستذئب! مهمتك هي القضاء على جميع القرويين والشرطي. اختر ضحيتك سراً في كل ليلة." },
+    cop: { name: "الشرطي", team: "good", description: "أنت الشرطي! مهمتك هي حماية الأبرياء. في كل ليلة، اختر شخصًا لحمايته من هجوم المستذئب." },
+    villager: { name: "قروي", team: "good", description: "أنت قروي عادي. مهمتك هي اكتشاف المستذئب والتصويت لإعدامه." },
+    farmer: { name: "مزارع", team: "good", description: "أنت مزارع بسيط. مهمتك هي البقاء على قيد الحياة والمساعدة في كشف المستذئب." },
+    chef: { name: "طباخ", team: "good", description: "أنت طباخ ماهر. مهمتك هي البقاء على قيد الحياة والمساعدة في كشف المستذئب." },
+    builder: { name: "عامل بناء", team: "good", description: "أنت عامل بناء قوي. مهمتك هي البقاء على قيد الحياة والمساعدة في كشف المستذئب." },
     // يمكنك إضافة المزيد من الأدوار العادية هنا
 };
 
@@ -19,13 +19,13 @@ const GAME_ROLES = {
 let games = {}; // Key: threadID, Value: game state object
 
 module.exports.config = {
-    name: "مشاركة",
+    name: "werewolf", // تم تغيير اسم اللعبة
     version: "1.0.0",
     hasPermssion: 0,
     credits: "YourName", // قم بتغيير هذا إلى اسمك
-    description: "لعبة القاتل والشرطي السرية",
+    description: "لعبة المستذئب السرية",
     commandCategory: "لعبة",
-    usages: "مشاركة / مشاركة حالة / مشاركة انهاء",
+    usages: "werewolf / werewolf حالة / werewolf انهاء",
     cooldowns: 5,
 };
 
@@ -37,7 +37,7 @@ function resetGame(threadID) {
         players: [], // [{ id: "user_id", name: "user_name", role: "", alive: true, playerNum: 0 }]
         rolesAssigned: false,
         discussionMessageID: null, // For general group messages
-        killerTarget: null, // ID of player killer wants to kill
+        werewolfTarget: null, // ID of player werewolf wants to kill
         copProtect: null, // ID of player cop wants to protect
         votes: {}, // Key: voterID, Value: votedPlayerID
         dayNumber: 0,
@@ -63,13 +63,13 @@ module.exports.handleEvent = async function({ api, event, client, __GLOBAL }) {
         const player = game.players.find(p => p.id === senderID);
         if (!player) return;
 
-        // Killer action
-        if (game.phase === "night_action" && player.role === "killer" && !game.killerTarget) {
+        // Werewolf action
+        if (game.phase === "night_action" && player.role === "werewolf" && !game.werewolfTarget) {
             const targetPlayerNum = parseInt(lowerCaseBody);
             const target = game.players.find(p => p.playerNum === targetPlayerNum && p.alive);
 
             if (target && target.id !== player.id) {
-                game.killerTarget = target.id;
+                game.werewolfTarget = target.id;
                 api.sendMessage(`تم اختيار ${target.name} (رقم ${target.playerNum}) كضحية لك هذه الليلة.`, senderID);
                 await checkAndProceedNightActions(api, game);
             } else {
@@ -110,12 +110,12 @@ module.exports.handleEvent = async function({ api, event, client, __GLOBAL }) {
                 alive: true,
                 playerNum: game.playerCounter
             });
-            api.sendMessage(`تمت مشاركة ${senderName} في اللعبة! (${game.players.length} مشاركين)`, threadID);
+            api.sendMessage(`انضم ${senderName} إلى قرية Werewolf! (${game.players.length} مشاركين)`, threadID); // رسالة انضمام جديدة
 
             if (game.players.length === MIN_PLAYERS) { // Check if min players reached to proceed
                 await distributeRoles(api, game);
                 setTimeout(async () => {
-                    await api.sendMessage("سوف تبدأ اللعبة بعد 15 ثانية... استعدوا!", threadID);
+                    await api.sendMessage("أدواركم السرية قد وُزعت! استعدوا، فقرية Werewolf على وشك أن تستيقظ...", threadID); // رسالة بدء اللعبة الجديدة
                 }, 1000); // 1 second for message
 
                 setTimeout(async () => {
@@ -123,7 +123,7 @@ module.exports.handleEvent = async function({ api, event, client, __GLOBAL }) {
                 }, 15000); // 15 seconds for intro
             }
         } else {
-            api.sendMessage("أنت بالفعل في قائمة المشاركين.", threadID, messageID);
+            api.sendMessage("أنت بالفعل جزء من هذه القرية.", threadID, messageID);
         }
         return;
     }
@@ -139,7 +139,7 @@ module.exports.handleEvent = async function({ api, event, client, __GLOBAL }) {
         if (!targetPlayer) return api.sendMessage("رقم اللاعب غير صالح أو اللاعب ميت.", threadID, messageID);
 
         game.votes[voter.id] = targetPlayer.id;
-        api.sendMessage(`تم التصويت على الشخص صاحب الرقم ${targetPlayer.playerNum}. (${Object.keys(game.votes).length}/${game.players.filter(p => p.alive).length} أصوات)`, threadID, messageID);
+        api.sendMessage(`تم تسجيل صوتك على اللاعب رقم ${targetPlayer.playerNum}. (${Object.keys(game.votes).length}/${game.players.filter(p => p.alive).length} أصوات)`, threadID, messageID);
 
         if (Object.keys(game.votes).length === game.players.filter(p => p.alive).length) {
             await processVotes(api, threadID, game);
@@ -153,7 +153,7 @@ module.exports.run = async function({ api, event, args }) {
 
     // Only the authorized user can start/end games
     if (senderID !== AUTHORIZED_USER_ID) {
-        return api.sendMessage("عذرًا، لا يمكنك استخدام هذا الأمر. أنت لست مطور البوت.", threadID, messageID);
+        return api.sendMessage("عذرًا، لا يمكنك استخدام هذا الأمر. أنت لست حارس هذه القرية.", threadID, messageID);
     }
 
     const command = args[0] ? args[0].toLowerCase() : "";
@@ -166,11 +166,9 @@ module.exports.run = async function({ api, event, args }) {
 
     switch (command) {
         case "": // Default command to start participation
-        case "مشاركة":
-        case "شارك":
-        case "انضمام":
+        case "werewolf": // تم تغيير الأمر
             if (game.active) {
-                return api.sendMessage("اللعبة جارية بالفعل. لا يمكن بدء مشاركة جديدة.", threadID, messageID);
+                return api.sendMessage("اللعبة جارية بالفعل. لا يمكن بدء مغامرة جديدة الآن.", threadID, messageID);
             }
             resetGame(threadID); // Ensure a clean slate
             game = games[threadID]; // Re-get the reference
@@ -179,7 +177,7 @@ module.exports.run = async function({ api, event, args }) {
             game.playerCounter = 0; // Reset player counter for new game
 
             api.sendMessage({
-                body: `أهلاً بكم في لعبة القاتل والشرطي! الرجاء من المشاركين الرد على هذه الرسالة بـ "تم" أو "نعم" للانضمام. نحتاج إلى ${MIN_PLAYERS} لاعبين على الأقل للبدء.`,
+                body: `✨ أهلاً بكم في عالم Werewolf الغامض! ✨\n\nهل أنتم مستعدون لتجربة فريدة من نوعها في قرية تعمها الأسرار؟\n\nالرجاء من جميع المغامرين الراغبين في الانضمام الرد على هذه الرسالة بـ "تم" أو "نعم".\n\nنحتاج إلى ${MIN_PLAYERS} لاعبين على الأقل لتبدأ رحلتنا المثيرة!`, // رسالة بداية فخمة
             }, threadID, (err, info) => {
                 if (!err) {
                     game.discussionMessageID = info.messageID;
@@ -190,14 +188,14 @@ module.exports.run = async function({ api, event, args }) {
         case "حالة":
         case "status":
             if (!game.active) {
-                return api.sendMessage("لا توجد لعبة جارية في هذه المجموعة.", threadID, messageID);
+                return api.sendMessage("لا توجد لعبة Werewolf جارية في هذه القرية.", threadID, messageID);
             }
-            let statusMsg = "حالة لعبة القاتل والشرطي:\n";
-            statusMsg += `المرحلة الحالية: ${game.phase === "waiting_for_players" ? "انتظار المشاركين" : game.phase === "night_action" ? "الليل (أفعال سرية)" : "التصويت (النهار)"}\n`;
-            statusMsg += `عدد اللاعبين: ${game.players.length} (${game.players.filter(p => p.alive).length} أحياء)\n`;
-            statusMsg += "اللاعبون الأحياء:\n";
+            let statusMsg = "📜 حالة قرية Werewolf 📜\n";
+            statusMsg += `المرحلة الحالية: ${game.phase === "waiting_for_players" ? "انتظار سكان القرية" : game.phase === "night_action" ? "الليل المظلم (أفعال سرية)" : "نهار الحقيقة (التصويت)"}\n`;
+            statusMsg += `عدد السكان: ${game.players.length} (${game.players.filter(p => p.alive).length} أحياء)\n`;
+            statusMsg += "سكان القرية الأحياء:\n";
             game.players.filter(p => p.alive).forEach(p => {
-                statusMsg += `- ${p.name} (رقم ${p.playerNum})\n`;
+                statusMsg += `- ${p.name} (الرقم: ${p.playerNum})\n`;
             });
             api.sendMessage(statusMsg, threadID, messageID);
             break;
@@ -205,14 +203,14 @@ module.exports.run = async function({ api, event, args }) {
         case "انهاء":
         case "end":
             if (!game.active) {
-                return api.sendMessage("لا توجد لعبة جارية لإنهاءها.", threadID, messageID);
+                return api.sendMessage("لا توجد لعبة Werewolf جارية لإنهاءها.", threadID, messageID);
             }
-            api.sendMessage("تم إنهاء لعبة القاتل والشرطي.", threadID, messageID);
+            api.sendMessage("تم إغلاق أبواب قرية Werewolf. انتهت اللعبة.", threadID, messageID);
             resetGame(threadID);
             break;
 
         default:
-            api.sendMessage("أمر غير صالح. الاستخدام: مشاركة / مشاركة حالة / مشاركة انهاء.", threadID, messageID);
+            api.sendMessage("أمر غير صالح. الاستخدام: werewolf / werewolf حالة / werewolf انهاء.", threadID, messageID);
             break;
     }
 };
@@ -225,7 +223,7 @@ async function distributeRoles(api, game) {
     const rolesPool = [];
 
     // Add specific roles
-    rolesPool.push("killer");
+    rolesPool.push("werewolf"); // تم تغيير القاتل إلى مستذئب
     rolesPool.push("cop");
 
     // Add other roles based on player count
@@ -246,17 +244,17 @@ async function distributeRoles(api, game) {
     for (let i = 0; i < players.length; i++) {
         players[i].role = rolesPool[i];
         await api.sendMessage(
-            `مرحباً ${players[i].name}!\nشخصيتك في اللعبة هي: **${GAME_ROLES[players[i].role].name}**\nرقمك في اللعبة: **${players[i].playerNum}**\n\n${GAME_ROLES[players[i].role].description}`,
+            `مرحباً ${players[i].name}!\n\nفي هذه القرية المليئة بالأسرار، شخصيتك هي: **${GAME_ROLES[players[i].role].name}**\nرقمك في القرية: **${players[i].playerNum}**\n\n${GAME_ROLES[players[i].role].description}\n\nتذكر، سرية دورك هي مفتاح النجاة!`,
             players[i].id
         );
     }
-    await api.sendMessage("تم توزيع الأدوار على المشاركين سراً. الرجاء تفقد طلبات المراسلة الخاصة بكم.", game.players[0].threadID);
+    await api.sendMessage("تم توزيع الأدوار السرية على سكان القرية. الرجاء تفقد رسائلكم الخاصة لمعرفة مصيركم!", game.players[0].threadID);
 }
 
 async function startGameRound(api, threadID, game) {
     game.dayNumber++;
     game.phase = "night_action";
-    game.killerTarget = null;
+    game.werewolfTarget = null; // تم تغيير killerTarget إلى werewolfTarget
     game.copProtect = null;
     game.votes = {}; // Reset votes for new round
 
@@ -279,23 +277,23 @@ async function startGameRound(api, threadID, game) {
     // Wait for the "typing" effect (simulated delay)
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // Send private instructions for killer
-    const killerPlayer = game.players.find(p => p.role === "killer" && p.alive);
-    if (killerPlayer) {
+    // Send private instructions for werewolf
+    const werewolfPlayer = game.players.find(p => p.role === "werewolf" && p.alive); // تم تغيير killerPlayer إلى werewolfPlayer
+    if (werewolfPlayer) {
         let playerListMsg = "القائمة بالأسماء والأرقام:\n";
         alivePlayers.forEach(p => {
-            if (p.id !== killerPlayer.id) // Killer cannot kill themselves
-                playerListMsg += `- ${p.name} (رقم: ${p.playerNum})\n`;
+            if (p.id !== werewolfPlayer.id) // Werewolf cannot kill themselves
+                playerListMsg += `- ${p.name} (الرقم: ${p.playerNum})\n`;
         });
-        await api.sendMessage(`أيها القاتل، حان دورك! الرجاء اختيار ضحيتك من القائمة التالية عن طريق إرسال رقم اللاعب:\n${playerListMsg}`, killerPlayer.id);
+        await api.sendMessage(`أيها المستذئب، حان وقت الصيد! الرجاء اختيار ضحيتك من القائمة التالية عن طريق إرسال رقم اللاعب:\n${playerListMsg}`, werewolfPlayer.id);
     }
 
     // Send private instructions for cop
     const copPlayer = game.players.find(p => p.role === "cop" && p.alive);
     if (copPlayer) {
         let playerListMsg = "القائمة بالأسماء والأرقام:\n";
-        alivePlayers.forEach(p => playerListMsg += `- ${p.name} (رقم: ${p.playerNum})\n`);
-        await api.sendMessage(`أيها الشرطي، حان دورك! الرجاء اختيار من تريد حمايته من القائمة التالية عن طريق إرسال رقم اللاعب:\n${playerListMsg}`, copPlayer.id);
+        alivePlayers.forEach(p => playerListMsg += `- ${p.name} (الرقم: ${p.playerNum})\n`);
+        await api.sendMessage(`أيها الشرطي، مهمتك هي الحماية! الرجاء اختيار من تريد حمايته من القائمة التالية عن طريق إرسال رقم اللاعب:\n${playerListMsg}`, copPlayer.id);
     }
 
     // Set a timeout for night actions if players don't respond
@@ -307,33 +305,33 @@ async function startGameRound(api, threadID, game) {
 }
 
 async function checkAndProceedNightActions(api, game) {
-    const killerPlayer = game.players.find(p => p.role === "killer" && p.alive);
+    const werewolfPlayer = game.players.find(p => p.role === "werewolf" && p.alive); // تم تغيير killerPlayer إلى werewolfPlayer
     const copPlayer = game.players.find(p => p.role === "cop" && p.alive);
 
-    const killerActionTaken = !killerPlayer || (killerPlayer && game.killerTarget !== null);
+    const werewolfActionTaken = !werewolfPlayer || (werewolfPlayer && game.werewolfTarget !== null); // تم تغيير killerActionTaken إلى werewolfActionTaken
     const copActionTaken = !copPlayer || (copPlayer && game.copProtect !== null);
 
-    if (killerActionTaken && copActionTaken) {
+    if (werewolfActionTaken && copActionTaken) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Short delay for suspense
 
         let outcomeStory = "\n";
         let victim = null;
         let isProtected = false;
 
-        if (game.killerTarget) {
-            victim = game.players.find(p => p.id === game.killerTarget);
+        if (game.werewolfTarget) { // تم تغيير killerTarget إلى werewolfTarget
+            victim = game.players.find(p => p.id === game.werewolfTarget); // تم تغيير killerTarget إلى werewolfTarget
             if (victim && game.copProtect === victim.id) {
                 isProtected = true;
             }
 
             if (victim) {
                 if (isProtected) {
-                    outcomeStory += "في عمق الظلام، قام القاتل بمحاولة غادرة... لكن! 💪\n";
-                    outcomeStory += `بفضل يقظة الشرطي السري، تمكن ${victim.name} من النجاة بأعجوبة! لقد كانت محاولة فاشلة! ✨`;
+                    outcomeStory += "في عمق الظلام، قام المستذئب بمحاولة غادرة... لكن! 💪\n";
+                    outcomeStory += `بفضل يقظة الشرطي السري، تمكن ${victim.name} من النجاة بأعجوبة! لقد كانت ليلة بلا ضحايا! ✨`;
                 } else {
                     victim.alive = false;
                     outcomeStory += "مرت ليلة مظلمة مليئة بالرعب... 🌑\n";
-                    outcomeStory += `تم العثور على ${victim.name} ميتاً في الصباح الباكر! 💀 يبدو أن القاتل ضرب مجدداً!`;
+                    outcomeStory += `تم العثور على ${victim.name} ميتاً في الصباح الباكر! 💀 يبدو أن المستذئب ضرب مجدداً!`;
                 }
             } else {
                 outcomeStory += "كانت ليلة هادئة بشكل مريب... لم يحدث شيء غير عادي. 🤫";
@@ -365,11 +363,11 @@ async function startVotingPhase(api, threadID, game) {
         return;
     }
 
-    let voteMessage = "\n--- صباح جديد. حان وقت التصويت! ---\n";
-    voteMessage += "الرجاء التصويت على من تعتقدون أنه القاتل.\n";
-    voteMessage += "اللاعبون الأحياء:\n";
+    let voteMessage = "\n--- ☀️ شروق الشمس، حان وقت الحقيقة! ☀️ ---\n";
+    voteMessage += "الرجاء التصويت على من تعتقدون أنه المستذئب المتخفي بينكم.\n";
+    voteMessage += "سكان القرية الأحياء:\n";
     alivePlayers.forEach(p => {
-        voteMessage += `- ${p.name} (رقم: ${p.playerNum})\n`;
+        voteMessage += `- ${p.name} (الرقم: ${p.playerNum})\n`;
     });
     voteMessage += "الرجاء الرد على هذه الرسالة برقم اللاعب الذي تشتبهون به.\n";
 
@@ -410,22 +408,22 @@ async function processVotes(api, threadID, game) {
         }
     }
 
-    let voteResultMsg = "\n--- نتيجة التصويت ---\n";
+    let voteResultMsg = "\n--- ⚖️ حكم القرية ⚖️ ---\n";
     if (lynchedPlayer && !tied) {
         lynchedPlayer.alive = false;
-        voteResultMsg += `بأغلبية الأصوات، تم إعدام ${lynchedPlayer.name} (رقم ${lynchedPlayer.playerNum}).\n`;
+        voteResultMsg += `بأغلبية أصوات القرية، تم إعدام ${lynchedPlayer.name} (الرقم ${lynchedPlayer.playerNum}).\n`;
 
-        if (lynchedPlayer.role === "killer") {
-            voteResultMsg += `يا للروعة! لقد كان ${lynchedPlayer.name} هو القاتل! 🎉\n`;
-            voteResultMsg += "لقد تم القبض على القاتل! القرويون يفوزون! 🥳";
+        if (lynchedPlayer.role === "werewolf") { // تم تغيير killer إلى werewolf
+            voteResultMsg += `يا للروعة! لقد كان ${lynchedPlayer.name} هو المستذئب الذي يرهب القرية! 🎉\n`;
+            voteResultMsg += "لقد تم تطهير القرية من الشر! القرويون يفوزون! 🥳";
             await api.sendMessage(voteResultMsg, threadID);
             resetGame(threadID);
             return;
         } else {
-            voteResultMsg += `يا للأسف! ${lynchedPlayer.name} لم يكن القاتل. لقد أعدمتم شخصًا بريئًا. 😔`;
+            voteResultMsg += `يا للأسف! ${lynchedPlayer.name} لم يكن المستذئب. لقد أعدمتم روحاً بريئة. 😔`;
         }
     } else {
-        voteResultMsg += "لم يتمكن اللاعبون من التوصل إلى قرار أو كان هناك تعادل. لم يتم إعدام أحد هذه المرة. 🤷";
+        voteResultMsg += "لم يتمكن سكان القرية من التوصل إلى قرار أو كان هناك تعادل. لم يتم إعدام أحد هذه المرة. 🤷";
     }
     await api.sendMessage(voteResultMsg, threadID);
 
@@ -442,23 +440,23 @@ async function processVotes(api, threadID, game) {
 
 async function checkWinConditions(api, threadID, game) {
     const alivePlayers = game.players.filter(p => p.alive);
-    const aliveKiller = alivePlayers.find(p => p.role === "killer");
-    const aliveGoodGuys = alivePlayers.filter(p => p.role !== "killer");
+    const aliveWerewolf = alivePlayers.find(p => p.role === "werewolf"); // تم تغيير killer إلى werewolf
+    const aliveGoodGuys = alivePlayers.filter(p => p.role !== "werewolf"); // تم تغيير killer إلى werewolf
 
-    if (!aliveKiller) {
-        api.sendMessage("لقد تم القضاء على القاتل! القرويون يفوزون! 🎉", threadID);
+    if (!aliveWerewolf) {
+        api.sendMessage("لقد تم القضاء على المستذئب! القرية آمنة الآن! 🎉", threadID);
         resetGame(threadID);
         return true;
     }
 
-    if (aliveKiller && aliveGoodGuys.length <= 1) { // If killer is equal or more than good guys (only one good guy left beside killer)
-        api.sendMessage("القاتل يتفوق عددًا على البقية! القاتل يفوز! 🔪", threadID);
+    if (aliveWerewolf && aliveGoodGuys.length <= 1) { // If werewolf is equal or more than good guys (only one good guy left beside werewolf)
+        api.sendMessage("المستذئب يتفوق عددًا على سكان القرية! الظلام ينتصر! 🐺", threadID);
         resetGame(threadID);
         return true;
     }
 
     if (alivePlayers.length === 0) {
-        api.sendMessage("يا للأسف! لم يتبق أي لاعب حي. انتهت اللعبة بدون فائز.", threadID);
+        api.sendMessage("يا للأسف! لم يتبق أي ساكن حي في القرية. انتهت اللعبة بدون فائز.", threadID);
         resetGame(threadID);
         return true;
     }
@@ -468,9 +466,9 @@ async function checkWinConditions(api, threadID, game) {
 
 function getNightIntroStory(dayNum) {
     const stories = [
-        `اليوم هو ${getRandomDayName()}، والوقت الآن هو ${getRandomTime()}. في هذه الليلة الهادئة، تتسلل المخاوف إلى القلوب. يقف القاتل في الظل، يبحث عن فريسته التالية. بينما الشرطي، بعينيه الساهرة، يحاول حماية الأبرياء...`,
-        `غروب الشمس يعلن عن بداية ليلة ${getRandomDayName()} أخرى في تمام الساعة ${getRandomTime()}. تنتشر الهمسات حول الجرائم الغامضة. القاتل يخطط لضربته، والشرطي مستعد للتدخل، لكن من سيسبق الآخر؟`,
-        `عند منتصف ليل ${getRandomDayName()}، الساعة ${getRandomTime()}، يسدل الظلام ستائره على المدينة. هدوء مريب يسيطر على الأجواء، يكسره فقط دقات قلب الخائفين. القاتل يترصد، والشرطي يحاول فك رموز هذه الليلة...`
+        `في ليلة ${getRandomDayName()}، عند الساعة ${getRandomTime()}، يلف الظلام قرية Werewolf. تتسلل همسات الرياح الباردة عبر الأشجار، حاملة معها رائحة الخطر. المستذئب الجائع يخرج من مخبئه، وعيون الشرطي تترقب في الظلام، بينما ينام القرويون بسلام، غير مدركين للمصير الذي ينتظرهم...`,
+        `ها قد أتى ليل ${getRandomDayName()} آخر، والساعة تشير إلى ${getRandomTime()}. القمر مكتمل، يلقي بظلال طويلة وغامضة على القرية. المستذئب يشم رائحة الخوف في الهواء، ويستعد لضربته. في المقابل، الشرطي مستعد للتضحية، يحاول حماية الأبرياء من براثن الشر. من سيكون الضحية هذه الليلة؟`,
+        `مع حلول الظلام في ${getRandomDayName()}، الساعة ${getRandomTime()}، تصمت القرية. لكن هذا الهدوء مخادع. المستذئب يخطو بخطوات خفية، يبحث عن فريسة جديدة. الشرطي، بقلب شجاع، يتجول في الشوارع المظلمة، على أمل إحباط خطط المستذئب. مصير القرية معلق بخيط رفيع...`
     ];
     return stories[Math.floor(Math.random() * stories.length)];
 }

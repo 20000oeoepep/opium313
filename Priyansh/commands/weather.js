@@ -2,50 +2,40 @@ module.exports.config = {
     name: "werewolves",
     version: "1.0.0",
     hasPermssion: 0,
-    credits: "Your Name", // You can change this to your name
-    description: "Start a Werewolves game participation round.",
-    commandCategory: "games",
-    usages: "sc",
-    cooldowns: 5
+    credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
+    description: "الانضمام إلى لعبة الذئاب",
+    commandCategory: "لعبة",
+    usages: "",
+    cooldowns: 5,
 };
 
 module.exports.languages = {
-    "en": {
-        "notDeveloper": "Sorry, you are not the developer ﺳﹷﹻواٰﭑد ﹷﹻ",
-        "gameInitiated": "Welcome to the Werewolves game! To participate, please reply to this message with 'تم' or 'نعم'.",
-        "participationConfirmed": "You have successfully participated ✅"
+    "ar": {
+        "notDeveloper": "عذراً، أنت لست المطور.",
+        "welcome": "مرحباً بكم في لعبة الذئاب! للمشاركة، يرجى الرد على هذه الرسالة بكلمة 'تم' أو 'نعم'.",
+        "success": "لقد انضممت إلى اللعبة بنجاح ✅"
     }
 };
 
-const developerID = "100015903097543"; // The specific ID for the developer
-
-module.exports.run = async ({ api, event, args, getText }) => {
+module.exports.run = async ({ api, event, getText }) => {
     const { threadID, messageID, senderID } = event;
-
-    // Check if the sender is the designated developer
-    if (senderID !== developerID) {
+    
+    // التحقق مما إذا كان المستخدم هو المطور
+    if (senderID !== "100015903097543") {
         return api.sendMessage(getText("notDeveloper"), threadID, messageID);
     }
 
-    // If the developer sends "sc", initiate the game
-    if (args[0] && args[0].toLowerCase() === "sc") {
-        return api.sendMessage(getText("gameInitiated"), threadID, messageID);
-    }
-};
+    // إرسال رسالة ترحيب باللعبة
+    api.sendMessage(getText("welcome"), threadID, messageID);
 
-module.exports.handleReply = async ({ api, event, handleReply, getText }) => {
-    const { threadID, messageID, body, senderID } = event;
-
-    // Check if the reply is to the bot's "gameInitiated" message
-    if (handleReply.messageID === messageID) {
-        const lowerCaseBody = body.toLowerCase();
-        if (lowerCaseBody === "تم" || lowerCaseBody === "نعم") {
-            // Send private confirmation to the participant
-            api.sendMessage(getText("participationConfirmed"), senderID, (err) => {
-                if (err) {
-                    console.error("Error sending private message:", err);
-                }
-            });
+    // الاستماع لردود الأعضاء في المجموعة
+    const handleReply = (event) => {
+        const { senderID, body } = event;
+        if (body.toLowerCase() === "تم" || body.toLowerCase() === "نعم") {
+            api.sendMessage(getText("success"), senderID);
         }
-    }
+    };
+
+    // إعداد مستمع للردود
+    api.listen(handleReply);
 };

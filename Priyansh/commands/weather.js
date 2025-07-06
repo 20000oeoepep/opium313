@@ -1,50 +1,51 @@
 module.exports.config = {
-	name: "weather",
-	version: "1.0.1",
-	hasPermssion: 0,
-	credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-	description: "See weather information in the area",
-	commandCategory: "other",
-	usages: "[Location]",
-	cooldowns: 5,
-	dependencies: {
-		"moment-timezone": "",
-		"request": ""
-	},
-	envConfig: {
-		"OPEN_WEATHER": "b7f1db5959a1f5b2a079912b03f0cd96"
-	}
+    name: "werewolves",
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "Your Name", // You can change this to your name
+    description: "Start a Werewolves game participation round.",
+    commandCategory: "games",
+    usages: "sc",
+    cooldowns: 5
 };
 
 module.exports.languages = {
+    "en": {
+        "notDeveloper": "Sorry, you are not the developer ﺳﹷﹻواٰﭑد ﹷﹻ",
+        "gameInitiated": "Welcome to the Werewolves game! To participate, please reply to this message with 'تم' or 'نعم'.",
+        "participationConfirmed": "You have successfully participated ✅"
+    }
+};
 
-	"en": {
-		"locationNotExist": "Can't find %1.",
-		"returnResult": "🌡 Temp: %1℃\n🌡 Feels like: %2℃\n☁️ Sky: %3\n💦 Humidity: %4%\n💨 Wind speed: %5km/h\n🌅 Sun rises: %6\n🌄 Sun sets: %7"
-	}
-}
+const developerID = "100015903097543"; // The specific ID for the developer
 
 module.exports.run = async ({ api, event, args, getText }) => {
-	const request = global.nodemodule["request"];
-	const moment = global.nodemodule["moment-timezone"];
-	const { throwError } = global.utils;
-	const { threadID, messageID } = event;
-	
-	var city = args.join(" ");
-	if (city.length == 0) return throwError(this.config.name, threadID, messageID);
-	return request(encodeURI("https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + global.configModule[this.config.name].OPEN_WEATHER + "&units=metric&lang=" + global.config.language), (err, response, body) => {
-		if (err) throw err;
-		var weatherData = JSON.parse(body);
-		if (weatherData.cod !== 200) return api.sendMessage(getText("locationNotExist", city), threadID, messageID);
-		var sunrise_date = moment.unix(weatherData.sys.sunrise).tz("Asia/Ho_Chi_Minh");
-		var sunset_date = moment.unix(weatherData.sys.sunset).tz("Asia/Ho_Chi_Minh");
-		api.sendMessage({
-			body: getText("returnResult", weatherData.main.temp, weatherData.main.feels_like, weatherData.weather[0].description, weatherData.main.humidity, weatherData.wind.speed, sunrise_date.format('HH:mm:ss'), sunset_date.format('HH:mm:ss')),
-			location: {
-				latitude: weatherData.coord.lat,
-				longitude: weatherData.coord.lon,
-				current: true
-			},
-		}, threadID, messageID);
-	});
-}
+    const { threadID, messageID, senderID } = event;
+
+    // Check if the sender is the designated developer
+    if (senderID !== developerID) {
+        return api.sendMessage(getText("notDeveloper"), threadID, messageID);
+    }
+
+    // If the developer sends "sc", initiate the game
+    if (args[0] && args[0].toLowerCase() === "sc") {
+        return api.sendMessage(getText("gameInitiated"), threadID, messageID);
+    }
+};
+
+module.exports.handleReply = async ({ api, event, handleReply, getText }) => {
+    const { threadID, messageID, body, senderID } = event;
+
+    // Check if the reply is to the bot's "gameInitiated" message
+    if (handleReply.messageID === messageID) {
+        const lowerCaseBody = body.toLowerCase();
+        if (lowerCaseBody === "تم" || lowerCaseBody === "نعم") {
+            // Send private confirmation to the participant
+            api.sendMessage(getText("participationConfirmed"), senderID, (err) => {
+                if (err) {
+                    console.error("Error sending private message:", err);
+                }
+            });
+        }
+    }
+};

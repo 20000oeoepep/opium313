@@ -2,7 +2,7 @@ const fs = require("fs");
 const moment = require("moment-timezone");
 
 module.exports.config = {
-    name: "games",
+    name: "تك",
     version: "2.0.0",
     hasPermssion: 0,
     credits: "سواد البغدادي",

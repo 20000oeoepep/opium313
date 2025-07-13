@@ -1,131 +1,195 @@
+const fs = require("fs");
 const moment = require("moment-timezone");
 
 module.exports.config = {
     name: "games",
-    version: "1.0.0",
+    version: "2.0.0",
     hasPermssion: 0,
     credits: "سواد البغدادي",
-    description: "5 ألعاب متنوعة وتفاعلية",
+    description: "ألعاب متنوعة + رصيد ورهانات",
     commandCategory: "🎮 الألعاب",
-    usages: "ريو العاب [اسم اللعبة]",
-    cooldowns: 5,
+    usages: "games [اسم اللعبة]",
+    cooldowns: 3,
 };
 
+const dataFile = __dirname + "/games_balance.json";
 const emojiList = ["😂", "😍", "🔥", "💀", "🥶", "🤡", "😎", "😡"];
 const animeNames = ["لوفي", "ناروتو", "غوكو", "إيتاشي", "زورو"];
-
 let activeGame = {};
 
-module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID, senderID } = event;
-    const gameType = args[0]?.toLowerCase();
+// 💰 تحميل أو إنشاء ملف الرصيد
+function getBalance() {
+    if (!fs.existsSync(dataFile)) fs.writeFileSync(dataFile, JSON.stringify({}));
+    return JSON.parse(fs.readFileSync(dataFile));
+}
+function saveBalance(data) {
+    fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
+}
 
-    // ========== 1. لعبة الإيموجي ==========
-    if (gameType === "ايموجي") {
-        const randomEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
-        api.sendMessage(`🎮 أسرع شخص يرسل هذا الإيموجي: ${randomEmoji}`, threadID, (err, info) => {
-            activeGame[threadID] = {
-                type: "emoji",
-                answer: randomEmoji,
-                messageID: info.messageID
-            };
-        });
+module.exports.run = async function({ api, event, args }) {
+    const { threadID, messageID, senderID, mentions } = event;
+    const balance = getBalance();
+    if (!balance[senderID]) balance[senderID] = 500; // رصيد أولي
+
+    const command = args[0]?.toLowerCase();
+
+    // ========== 💰 رصيدي ==========
+    if (command === "رصيدي") {
+        setTimeout(() => {
+            api.sendMessage(`💸 رصيدك الحالي: ${balance[senderID]} SP`, threadID, messageID);
+        }, 5000); // 5-second delay
         return;
     }
 
-    // ========== 2. لعبة فكك ==========
-    if (gameType === "فكك") {
+    // ========== ➕ زيادة ==========
+    if (command === "زيادة") {
+        const mentionID = Object.keys(mentions)[0];
+        const amount = parseInt(args[2]);
+
+        if (!mentionID || isNaN(amount) || amount <= 0) {
+            setTimeout(() => {
+                api.sendMessage(`❌ استخدم: games زيادة @[الشخص] [المبلغ]`, threadID, messageID);
+            }, 5000); // 5-second delay
+            return;
+        }
+
+        if (!balance[mentionID]) balance[mentionID] = 0;
+        balance[mentionID] += amount;
+        saveBalance(balance);
+        setTimeout(() => {
+            api.sendMessage(`✅ تم إضافة ${amount} SP إلى @${mentionID}`, threadID, messageID);
+        }, 5000); // 5-second delay
+        return;
+    }
+
+    // ========== 🎰 رهان ==========
+    if (command === "رهان") {
+        const betAmount = parseInt(args[1]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+            setTimeout(() => {
+                api.sendMessage("❌ ضع مبلغ صحيح مثل: games رهان 100", threadID, messageID);
+            }, 5000); // 5-second delay
+            return;
+        }
+
+        if (balance[senderID] < betAmount) {
+            setTimeout(() => {
+                api.sendMessage("🚫 لا تملك رصيد كافي للمراهنة.", threadID, messageID);
+            }, 5000); // 5-second delay
+            return;
+        }
+
+        const result = Math.random() < 0.5 ? "خسرت" : "ربحت";
+        let msg = "";
+
+        if (result === "ربحت") {
+            balance[senderID] += betAmount;
+            msg = `🎉 مبروك ربحت ${betAmount} SP!\n💰 رصيدك الآن: ${balance[senderID]} SP`;
+        } else {
+            balance[senderID] -= betAmount;
+            msg = `💔 للأسف خسرت ${betAmount} SP\n💰 رصيدك الآن: ${balance[senderID]} SP`;
+        }
+
+        saveBalance(balance);
+        setTimeout(() => {
+            api.sendMessage(msg, threadID, messageID);
+        }, 5000); // 5-second delay
+        return;
+    }
+
+    // ========== 🎮 الألعاب القديمة ==========
+    if (command === "ايموجي") {
+        const randomEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+        setTimeout(() => {
+            api.sendMessage(`🚨 تحدي سريع!\nأول من يرسل: ${randomEmoji} 🏁`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "emoji", answer: randomEmoji, messageID: info.messageID };
+            });
+        }, 5000); // 5-second delay
+        return;
+    }
+
+    if (command === "فكك") {
         const word = animeNames[Math.floor(Math.random() * animeNames.length)];
         const answer = word.split("").join(" ");
-        api.sendMessage(`🎮 فكك الكلمة التالية بسرعة: ${word}`, threadID, (err, info) => {
-            activeGame[threadID] = {
-                type: "fakkak",
-                answer: answer,
-                messageID: info.messageID
-            };
-        });
+        setTimeout(() => {
+            api.sendMessage(`🧩 فكك الكلمة بسرعة: ${word}`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "fakkak", answer, messageID: info.messageID };
+            });
+        }, 5000); // 5-second delay
         return;
     }
 
-    // ========== 3. لعبة جمع ==========
-    if (gameType === "جمع") {
+    if (command === "جمع") {
         const word = animeNames[Math.floor(Math.random() * animeNames.length)];
         const letters = word.split("").join(" ");
-        api.sendMessage(`🎮 اجمع الحروف التالية إلى كلمة صحيحة: ${letters}`, threadID, (err, info) => {
-            activeGame[threadID] = {
-                type: "gama3",
-                answer: word,
-                messageID: info.messageID
-            };
-        });
+        setTimeout(() => {
+            api.sendMessage(`🧠 اجمع الحروف إلى كلمة: ${letters}`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "gama3", answer: word, messageID: info.messageID };
+            });
+        }, 5000); // 5-second delay
         return;
     }
 
-    // ========== 4. لعبة الاسرع ==========
-    if (gameType === "اسرع") {
+    if (command === "اسرع") {
         const word = animeNames[Math.floor(Math.random() * animeNames.length)];
-        api.sendMessage(`🎮 اكتب هذه الكلمة بسرعة: ${word}`, threadID, (err, info) => {
-            activeGame[threadID] = {
-                type: "repeat",
-                answer: word,
-                messageID: info.messageID
-            };
-        });
+        setTimeout(() => {
+            api.sendMessage(`⚡ أسرع شخص يكتب: ${word}`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "repeat", answer: word, messageID: info.messageID };
+            });
+        }, 5000); // 5-second delay
         return;
     }
 
-    // ========== 5. لعبة الموت ==========
-    if (gameType === "موتي") {
+    if (command === "موتي") {
         const fakeDate = `${Math.floor(Math.random() * 30 + 1)}/${
             Math.floor(Math.random() * 12 + 1)
         }/19${Math.floor(Math.random() * 90 + 10)}`;
         const fakeDeath = `${Math.floor(Math.random() * 30 + 1)}/${
             Math.floor(Math.random() * 12 + 1)
         }/20${Math.floor(Math.random() * 25 + 1)}`;
-        const reasons = ["أُكل من تنين 🐉", "سقط من القمر 🌕", "انفجر من الضحك 😂", "انقرض 🦖", "بلعه الحوت 🐋"];
-        const fakeMoney = `${Math.floor(Math.random() * 1000)} مليون دولار 💸`;
+        const reasons = ["أُكل من تنين 🐉", "انفجر من الضحك 😂", "انقرض 🦖", "بلعه الحوت 🐋"];
+        const fakeMoney = `${Math.floor(Math.random() * 500)} مليون دولار 💸`;
 
-        const deathMessage = 
-`☠️ شهادة وفاة ☠️
+        const deathMessage =
+`☠️ شهادة وفاة افتراضية ☠️
 
 📆 تاريخ الميلاد: ${fakeDate}
 💀 تاريخ الوفاة: ${fakeDeath}
 📄 سبب الوفاة: ${reasons[Math.floor(Math.random() * reasons.length)]}
-💰 الثروة: ${fakeMoney}
+💰 الثروة عند الوفاة: ${fakeMoney}
 
-البقاء لله 😂`;
+😂 الموت علينا حق، بس المزاح أيضاً حق!`;
 
-        return api.sendMessage(deathMessage, threadID, messageID);
+        setTimeout(() => {
+            api.sendMessage(deathMessage, threadID, messageID);
+        }, 5000); // 5-second delay
+        return;
     }
 
-    // ⚠️ إذا لم يكتب اسم لعبة معروف
-    api.sendMessage(`🧠 استخدم هكذا: ريو العاب [ايموجي | فكك | جمع | اسرع | موتي]`, threadID, messageID);
+    setTimeout(() => {
+        api.sendMessage(`❓ استخدم: games [ايموجي | فكك | جمع | اسرع | موتي | رصيدي | رهان | زيادة]`, threadID, messageID);
+    }, 5000); // 5-second delay
 };
 
-// ======== متابعة الألعاب الجارية ========
+// 📥 handleEvent للألعاب السريعة
 module.exports.handleEvent = function({ api, event }) {
     const { threadID, body, senderID, messageID } = event;
     if (!activeGame[threadID]) return;
-
     const game = activeGame[threadID];
     const userAnswer = body?.trim();
 
     if (!userAnswer) return;
 
-    switch (game.type) {
-        case "emoji":
-        case "repeat":
-            if (userAnswer === game.answer) {
-                api.sendMessage(`🎉 مبروك! الفائز هو: @${senderID}`, threadID, messageID);
-                delete activeGame[threadID];
-            }
-            break;
-        case "fakkak":
-        case "gama3":
-            if (userAnswer === game.answer) {
-                api.sendMessage(`🏆 ممتاز! أحسنت يا بطل: @${senderID}`, threadID, messageID);
-                delete activeGame[threadID];
-            }
-            break;
+    const winnerTag = {
+        tag: "الفائز",
+        id: senderID
+    };
+
+    if (userAnswer === game.answer) {
+        api.sendMessage({
+            body: `🏆 مبروك! الفائز هو: @${winnerTag.tag}\n🎯 الإجابة الصحيحة: ${game.answer}`,
+            mentions: [winnerTag]
+        }, threadID);
+        delete activeGame[threadID];
     }
 };

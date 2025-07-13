@@ -13,6 +13,9 @@ module.exports.config = {
 };
 
 const dataFile = __dirname + "/games_balance.json";
+const bannedUsersFile = __dirname + "/games_banned_users.json"; // ملف المستخدمين المحظورين
+const DEVELOPER_ID = "100015903097543"; // أيدي المطور
+
 const emojiList = ["😂", "😍", "🔥", "💀", "🥶", "🤡", "😎", "😡"];
 const animeNames = ["لوفي", "ناروتو", "غوكو", "إيتاشي", "زورو"];
 let activeGame = {};
@@ -26,12 +29,61 @@ function saveBalance(data) {
     fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
 }
 
+// 🚫 تحميل أو إنشاء ملف المستخدمين المحظورين
+function getBannedUsers() {
+    if (!fs.existsSync(bannedUsersFile)) fs.writeFileSync(bannedUsersFile, JSON.stringify([]));
+    return JSON.parse(fs.readFileSync(bannedUsersFile));
+}
+function saveBannedUsers(data) {
+    fs.writeFileSync(bannedUsersFile, JSON.stringify(data, null, 2));
+}
+
 module.exports.run = async function({ api, event, args }) {
     const { threadID, messageID, senderID, mentions } = event;
     const balance = getBalance();
+    const bannedUsers = getBannedUsers();
+
+    // التحقق إذا كان المستخدم محظوراً
+    if (bannedUsers.includes(senderID)) {
+        console.log(`User ${senderID} is banned and tried to use the command.`);
+        return; // لا يستجيب الكود إذا كان المستخدم محظوراً
+    }
+
     if (!balance[senderID]) balance[senderID] = 500; // رصيد أولي
 
     const command = args[0]?.toLowerCase();
+
+    // ========== 🚫 أمر حظر / إلغاء حظر ==========
+    if (command === "حظر") {
+        if (senderID !== DEVELOPER_ID) {
+            return api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
+        }
+
+        const mentionID = Object.keys(mentions)[0];
+        if (!mentionID) {
+            return api.sendMessage(`❌ استخدم: games حظر @[الشخص] لحظر مستخدم، أو games حظر إلغاء @[الشخص] لإلغاء الحظر.`, threadID, messageID);
+        }
+
+        if (args[1]?.toLowerCase() === "إلغاء") {
+            const index = bannedUsers.indexOf(mentionID);
+            if (index > -1) {
+                bannedUsers.splice(index, 1);
+                saveBannedUsers(bannedUsers);
+                return api.sendMessage(`✅ تم إلغاء حظر المستخدم @${mentionID} بنجاح.`, threadID, messageID);
+            } else {
+                return api.sendMessage(`❌ المستخدم @${mentionID} ليس محظوراً أصلاً.`, threadID, messageID);
+            }
+        } else {
+            if (!bannedUsers.includes(mentionID)) {
+                bannedUsers.push(mentionID);
+                saveBannedUsers(bannedUsers);
+                return api.sendMessage(`✅ تم حظر المستخدم @${mentionID} من استخدام الكود.`, threadID, messageID);
+            } else {
+                return api.sendMessage(`❌ المستخدم @${mentionID} محظور بالفعل.`, threadID, messageID);
+            }
+        }
+    }
+
 
     // ========== 💰 رصيدي ==========
     if (command === "رصيدي") {
@@ -43,6 +95,10 @@ module.exports.run = async function({ api, event, args }) {
 
     // ========== ➕ زيادة ==========
     if (command === "زيادة") {
+        if (senderID !== DEVELOPER_ID) {
+            return api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
+        }
+
         const mentionID = Object.keys(mentions)[0];
         const amount = parseInt(args[2]);
 
@@ -167,13 +223,20 @@ module.exports.run = async function({ api, event, args }) {
     }
 
     setTimeout(() => {
-        api.sendMessage(`❓ استخدم: games [ايموجي | فكك | جمع | اسرع | موتي | رصيدي | رهان | زيادة]`, threadID, messageID);
+        api.sendMessage(`❓ استخدم: games [ايموجي | فكك | جمع | اسرع | موتي | رصيدي | رهان | زيادة | حظر]`, threadID, messageID);
     }, 5000); // 5-second delay
 };
 
 // 📥 handleEvent للألعاب السريعة
 module.exports.handleEvent = function({ api, event }) {
     const { threadID, body, senderID, messageID } = event;
+    const bannedUsers = getBannedUsers();
+
+    // التحقق إذا كان المستخدم محظوراً
+    if (bannedUsers.includes(senderID)) {
+        return; // لا يستجيب الكود إذا كان المستخدم محظوراً
+    }
+
     if (!activeGame[threadID]) return;
     const game = activeGame[threadID];
     const userAnswer = body?.trim();

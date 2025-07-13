@@ -2,7 +2,7 @@ const fs = require("fs");
 const moment = require("moment-timezone");
 
 module.exports.config = {
-    name: "تك",
+    name: "games",
     version: "2.0.0",
     hasPermssion: 0,
     credits: "سواد البغدادي",
@@ -39,7 +39,7 @@ function saveBannedUsers(data) {
 }
 
 module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID, senderID, mentions } = event;
+    const { threadID, messageID, senderID, mentions, messageReply } = event; // أضفنا messageReply
     const balance = getBalance();
     const bannedUsers = getBannedUsers();
 
@@ -93,27 +93,32 @@ module.exports.run = async function({ api, event, args }) {
         return;
     }
 
-    // ========== ➕ زيادة ==========
+    // ========== ➕ زيادة (محدث) ==========
     if (command === "زيادة") {
         if (senderID !== DEVELOPER_ID) {
             return api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
         }
 
-        const mentionID = Object.keys(mentions)[0];
-        const amount = parseInt(args[2]);
+        if (!messageReply) {
+            return api.sendMessage("💡 لزيادة الرصيد، يجب عليك الرد على رسالة الشخص المستهدف مع كتابة 'زيادة [المبلغ]'.", threadID, messageID);
+        }
 
-        if (!mentionID || isNaN(amount) || amount <= 0) {
+        const targetID = messageReply.senderID;
+        const amount = parseInt(args[1]); // المبلغ هو الوسيط الثاني بعد كلمة "زيادة"
+
+        if (isNaN(amount) || amount <= 0) {
             setTimeout(() => {
-                api.sendMessage(`❌ استخدم: games زيادة @[الشخص] [المبلغ]`, threadID, messageID);
+                api.sendMessage(`❌ الرجاء تحديد مبلغ صحيح للزيادة. مثال: الرد على رسالة الشخص وكتابة 'زيادة 100'.`, threadID, messageID);
             }, 5000); // 5-second delay
             return;
         }
 
-        if (!balance[mentionID]) balance[mentionID] = 0;
-        balance[mentionID] += amount;
+        if (!balance[targetID]) balance[targetID] = 0;
+        balance[targetID] += amount;
         saveBalance(balance);
+
         setTimeout(() => {
-            api.sendMessage(`✅ تم إضافة ${amount} SP إلى @${mentionID}`, threadID, messageID);
+            api.sendMessage(`✅ تم إضافة ${amount} SP إلى @${targetID} (رصيده الآن: ${balance[targetID]} SP)`, threadID, messageID);
         }, 5000); // 5-second delay
         return;
     }
@@ -223,7 +228,7 @@ module.exports.run = async function({ api, event, args }) {
     }
 
     setTimeout(() => {
-        api.sendMessage(`❓ استخدم: games [ايموجي | فكك | جمع | اسرع | موتي | رصيدي | رهان | زيادة | حظر]`, threadID, messageID);
+        api.sendMessage(`❓ استخدم: games [ايموجي | فكك | جمع | اسرع | موتي | رصيدي | رهان | زيادة (للمطور فقط) | حظر (للمطور فقط)]`, threadID, messageID);
     }, 5000); // 5-second delay
 };
 

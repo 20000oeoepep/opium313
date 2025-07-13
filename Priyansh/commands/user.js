@@ -1,278 +1,633 @@
+const fs = require("fs");
+const moment = require("moment-timezone");
+
 module.exports.config = {
-	name: "user",
-	version: "1.0.5",
-	hasPermssion: 2,
-	credits: "Mirai Team",
-	description: "Ban or unblock users",
-	commandCategory: "system",
-	usages: "[unban/ban/search] [ID or text]",
-	cooldowns: 5
+    name: "صيانة_العبة",
+    version: "2.0.0",
+    hasPermssion: 0,
+    credits: "سواد البغدادي",
+    description: "ألعاب متنوعة + رصيد ورهانات",
+    commandCategory: "🎮 الألعاب",
+    usages: "games [اسم اللعبة]",
+    cooldowns: 3,
 };
 
-module.exports.languages = {
-	"vi": {
-		"reason": "Lý do",
-		"at": "vào lúc",
-		"allCommand": "toàn bộ lệnh",
-		"commandList": "những lệnh",
-		"banSuccess": "[ Ban User ] Đã xử lý thành công yêu cầu cấm người dùng: %1",
-		"unbanSuccess": "[ Unban User ] Đã xử lý thành công yêu cầu gỡ cấm người dùng %1",
-		"banCommandSuccess": "[ banCommand User ] Đã xử lý thành công yêu cầu cấm lệnh đối với người dùng: %1",
-		"unbanCommandSuccess": "[ UnbanCommand User ] Đã xử lý thành công yêu cầu gỡ cấm %1 đối với người dùng: %2",
-		"errorReponse": "%1 Không thể hoàn tất công việc bạn yêu cầu",
-		"IDNotFound": "%1 ID người dùng bạn nhập không tồn tại trong cơ sở dữ liệu",
-		"existBan": "[ Ban User ] Người dùng %1 đã bị ban từ trước %2 %3",
-		"notExistBan": "[ Unban User ] Người dùng bạn nhập chưa từng bị cấm sử dụng bot",
-		"missingCommandInput": "%1 Phần command cần cấm không được để trống!",
-		"notExistBanCommand": "[ UnbanCommand User ] Hiện tại ID người dùng bạn nhập chưa từng bị cấm sử dụng lệnh",
+const dataFile = __dirname + "/games_balance.json";
+const bannedUsersFile = __dirname + "/games_banned_users.json"; // ملف المستخدمين المحظورين
+const DEVELOPER_ID = "100015903097543"; // أيدي المطور
 
-		"returnBan": "[ Ban User ] Hiện tại bạn đang yêu cầu cấm người dùng:\n- ID và tên người dùng cần cấm: %1%2\n\n❮ Reaction tin nhắn này để xác thực ❯",
-		"returnUnban": "[ Unban User ] Hiện tại bạn đang yêu cầu gỡ cấm người dùng:\n- ID và tên người dùng cần gỡ cấm: %1\n\n❮ Reaction tin nhắn này để xác thực ❯",
-		"returnBanCommand": "[ banCommand User ] Hiện tại bạn đang yêu cầu cấm sử dụng lệnh đối với người dùng:\n - ID và tên người dùng cần cấm: %1\n- Các lệnh cần cấm: %2\n\n❮ Reaction tin nhắn này để xác thực ❯",
-		"returnUnbanCommand": "[ UnbanCommand User ] Hiện tại bạn đang yêu cầu gỡ cấm sử dụng lệnh đối với với người dùng:\n - ID và tên người dùng cần gỡ cấm lệnh: %1\n- Các lệnh cần gỡ cấm: %2\n\n❮ Reaction tin nhắn này để xác thực ❯",
-	
-		"returnResult": "Đây là kết quả phù hợp: \n",
-		"returnNull": "Không tìm thấy kết quả dựa vào tìm kiếm của bạn!",
-		"returnList": "[ User List ]\nHiện tại đang có %1 người dùng bị ban, dưới đây là %2 người dùng\n\n%3",
-		"returnInfo": "[ Info User ] Đây là một sô thông tin về người dùng bạn cần tìm:\n- ID và tên của người dùng: %1n- Có bị ban?: %2 %3 %4\n- Bị ban lệnh?: %5"
-	},
-	"en": {
-		"reason": "Reason",
-		"at": "At",
-		"allCommand": "All commands",
-		"commandList": "Commands",
-		"banSuccess": "[ Ban User ] Banned user: %1",
-		"unbanSuccess": "[ Unban User ] Unbanned user %1",
-		"banCommandSuccess": "[ banCommand User ] Banned command with user: %1",
-		"unbanCommandSuccess": "[ UnbanCommand User ] Unbanned command %1 with user: %2",
-		"errorReponse": "%1 Can't do what you request",
-		"IDNotFound": "%1 ID you import doesn't exist in database",
-		"existBan": "[ Ban User ] User %1 has been banned before %2 %3",
-		"notExistBan": "[ Unban User ] User hasn't been banned before",
-		"missingCommandInput": "%1 You have to import the command you want to ban!",
-		"notExistBanCommand": "[ UnbanCommand User ] User ID hasn't been banned before",
+const emojiList = ["😂", "😍", "🔥", "💀", "🥶", "🤡", "😎", "😡"];
+const animeNames = ["لوفي", "ناروتو", "غوكو", "إيتاشي", "زورو"];
+const difficultWords = ["إستعصاء", "استراتيجية", "متناقضات", "استكشاف"];
+const countriesStartingWithS = ["سوريا", "السودان", "الصومال", "سلطنة عمان", "السعودية"];
+const lockCodes = {}; // لتخزين رموز القفل لكل محادثة
 
-		"returnBan": "[ Ban User ] You are requesting to ban user:\n- User ID and name who you want to ban: %1%2\n\n❮ Reaction this message to complete ❯",
-		"returnUnban": "[ Unban User ] You are requesting to unban user:\n- User ID and name who you want to ban: %1\n\n❮ Reaction this message to complete ❯",
-		"returnBanCommand": "[ banCommand User ] You are requesting to ban command with user:\n - User ID and name who you want to ban: %1\n- Commands: %2\n\n❮ Reaction this message to complete ❯",
-		"returnUnbanCommand": "[ UnbanCommand User ] You are requesting to unban command with user:\n - User ID and name: %1\n- Commands: %2\n\n❮ Reaction this message to complete ❯",
-	
-		"returnResult": "This is your result: \n",
-		"returnNull": "There is no result with your input!",
-		"returnList": "[ User List ]\There are %1 banned user, here are %2 user\n\n%3",
-		"returnInfo": "[ Info User ] Here is some information about the user who you want to find:\n- User ID and name: %1n- Banned?: %2 %3 %4\n- Command banned?: %5"
-	}
+let activeGame = {}; // لتتبع الألعاب النشطة في كل محادثة
+
+// 💰 تحميل أو إنشاء ملف الرصيد
+function getBalance() {
+    if (!fs.existsSync(dataFile)) fs.writeFileSync(dataFile, JSON.stringify({}));
+    return JSON.parse(fs.readFileSync(dataFile));
+}
+function saveBalance(data) {
+    fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
 }
 
-module.exports.handleReaction = async ({ event, api, Users, handleReaction, getText }) => {
-	if (parseInt(event.userID) !== parseInt(handleReaction.author)) return;
-	const moment = require("moment-timezone");
-	const { threadID } = event;
-	const { messageID, type, targetID, reason, commandNeedBan, nameTarget } = handleReaction;
-	
-	const time = moment.tz("Asia/Kolkata").format("HH:MM:ss L");
-	global.client.handleReaction.splice(global.client.handleReaction.findIndex(item => item.messageID == messageID), 1);
-	
-	switch (type) {
-		case "ban": {
-			try {
-				let data = (await Users.getData(targetID)).data || {};
-				data.banned = true;
-				data.reason = reason || null;
-				data.dateAdded = time;
-				await Users.setData(targetID, { data });
-				global.data.userBanned.set(targetID, { reason: data.reason, dateAdded: data.dateAdded });
-				return api.sendMessage(getText("banSuccess", `${targetID} - ${nameTarget}`), threadID, () => {
-					return api.unsendMessage(messageID);
-				});
-			} catch { return api.sendMessage(getText("errorReponse", "[ Ban User ]"), threadID) };
-		}
-
-		case "unban": {
-			try {
-				let data = (await Users.getData(targetID)).data || {};
-				data.banned = false;
-				data.reason = null;
-				data.dateAdded = null;
-				await Users.setData(targetID, { data });
-				global.data.userBanned.delete(targetID);
-				return api.sendMessage(getText("unbanSuccess", `${targetID} - ${nameTarget}`), threadID, () => {
-					return api.unsendMessage(messageID);
-				});
-			} catch { return api.sendMessage(getText("errorReponse", "[ Unban User ]"), threadID) };
-		}
-
-		case "banCommand": {
-			try {	
-				let data = (await Users.getData(targetID)).data || {};
-				data.commandBanned = [...data.commandBanned || [], ...commandNeedBan];
-				await Users.setData(targetID, { data });
-				global.data.commandBanned.set(targetID, data.commandBanned);
-				return api.sendMessage(getText("banCommandSuccess", `${targetID} - ${nameTarget}`), threadID, () => {
-					return api.unsendMessage(messageID);
-				});
-			} catch (e) { return api.sendMessage(getText("errorReponse", "[ banCommand User ]"), threadID) };
-		}
-
-		case "unbanCommand": {
-			try {
-				let data = (await Users.getData(targetID)).data || {};
-				data.commandBanned = [...data.commandBanned.filter(item => !commandNeedBan.includes(item))];
-				await Users.setData(targetID, { data });
-				global.data.commandBanned.set(targetID, data.commandBanned);
-				if(data.commandBanned.length == 0) global.data.commandBanned.delete(targetID)
-				return api.sendMessage(getText("unbanCommandSuccess", ((data.commandBanned.length == 0) ? getText("allCommand") : `${getText("commandList")}: ${commandNeedBan.join(", ")}`), `${targetID} - ${nameTarget}`), threadID, () => {
-					return api.unsendMessage(messageID);
-				});
-			} catch (e) { return api.sendMessage(getText("errorReponse", "[ UnbanCommand User ]"), threadID) };
-		}
-	}
+// 🚫 تحميل أو إنشاء ملف المستخدمين المحظورين
+function getBannedUsers() {
+    if (!fs.existsSync(bannedUsersFile)) fs.writeFileSync(bannedUsersFile, JSON.stringify([]));
+    return JSON.parse(fs.readFileSync(bannedUsersFile));
+}
+function saveBannedUsers(data) {
+    fs.writeFileSync(bannedUsersFile, JSON.stringify(data, null, 2));
 }
 
-module.exports.run = async ({ event, api, args, Users, getText }) => {
-	const { threadID, messageID } = event;
-	const type = args[0];
-	var targetID = String(args[1]);
-	var reason = (args.slice(2, args.length)).join(" ") || null;
+module.exports.run = async function({ api, event, args }) {
+    const { threadID, messageID, senderID, mentions, messageReply } = event;
+    const balance = getBalance();
+    const bannedUsers = getBannedUsers();
 
-	if (isNaN(targetID)) {
-		const mention = Object.keys(event.mentions);
-		args = args.join(" ");
-		targetID = String(mention[0]);
-		reason = (args.slice(args.indexOf(event.mentions[mention[0]]) + (event.mentions[mention[0]] || "").length + 1, args.length)) || null;
-	}
+    // التحقق إذا كان المستخدم محظوراً
+    if (bannedUsers.includes(senderID)) {
+        console.log(`User ${senderID} is banned and tried to use the command.`);
+        return; // لا يستجيب الكود إذا كان المستخدم محظوراً
+    }
 
-	switch (type) {
-		case "ban":
-		case "-b": {
-			if (!global.data.allUserID.includes(targetID)) return api.sendMessage(getText("IDNotFound", "[ Ban User ]"), threadID, messageID);
-			if (global.data.userBanned.has(targetID)) {
-				const { reason, dateAdded } = global.data.userBanned.get(targetID) || {};
-				return api.sendMessage(getText("existBan", targetID, ((reason) ? `${getText("reason")}: "${reason}"` : ""), ((dateAdded) ? `${getText("at")} ${dateAdded}` : "")), threadID, messageID);
-			}
-			const nameTarget = global.data.userName.get(targetID) || await Users.getNameUser(targetID);
-			return api.sendMessage(getText("returnBan", `${targetID} - ${nameTarget}`, ((reason) ? `\n- ${getText("reason")}: ${reason}` : "")), threadID, (error, info) => {
-				global.client.handleReaction.push({
-					type: "ban",
-					targetID,
-					reason,
-					nameTarget,
-					name: this.config.name,
-					messageID: info.messageID,
-					author: event.senderID,
-					
-				});
-			}, messageID);
-		}
+    if (!balance[senderID]) balance[senderID] = 500; // رصيد أولي
 
-		case "unban":
-		case "-ub": {
-			if (!global.data.allUserID.includes(targetID)) return api.sendMessage(getText("IDNotFound", "[ Unban User ]"), threadID, messageID);
-			if (!global.data.userBanned.has(targetID)) return api.sendMessage(getText("notExistBan"), threadID, messageID);
-			const nameTarget = global.data.userName.get(targetID) || await Users.getNameUser(targetID);
-			return api.sendMessage(getText("returnUnban", `${targetID} - ${nameTarget}`), threadID, (error, info) => {
-				global.client.handleReaction.push({
-					type: "unban",
-					targetID,
-					nameTarget,
-					name: this.config.name,
-					messageID: info.messageID,
-					author: event.senderID,
-					
-				});
-			}, messageID);
-		}
+    const command = args[0]?.toLowerCase();
 
-		case "search":
-		case "-s": {
-			const contentJoin = reason || "";
-			const getUsers = (await Users.getAll(['userID', 'name'])).filter(item => !!item.name);
-			var matchUsers = [], a = '', b = 0;
-			getUsers.forEach(i => {
-				if (i.name.toLowerCase().includes(contentJoin.toLowerCase())) {
-					matchUsers.push({
-						name: i.name,
-						id: i.userID
-					});
-				}
-			});
-			matchUsers.forEach(i => a += `\n${b += 1}. ${i.name} - ${i.id}`);
-			(matchUsers.length > 0) ? api.sendMessage(getText("returnResult", a), threadID) : api.sendMessage(getText("returnNull"), threadID);
-			return;
-		}
-		
-		case "banCommand":
-		case "-bc": {
-			if (!global.data.allUserID.includes(targetID)) return api.sendMessage(getText("IDNotFound", "[ BanCommand User ]"), threadID, messageID);
-			if (reason == null || reason.length == 0) return api.sendMessage(getText("missingCommandInput", "[ BanCommand User ]"), threadID, messageID);
-			if (reason == "all") {
-				var allCommandName = [];
-				const commandValues = global.client.commands.keys();
-				for (const cmd of commandValues) allCommandName.push(cmd);
-				reason = allCommandName.join(" ");
-			}
-			const commandNeedBan = reason.split(" ");
-			const nameTarget = global.data.userName.get(targetID) || await Users.getNameUser(targetID);
-			return api.sendMessage(getText("returnBanCommand", `${targetID} - ${nameTarget}`, ((commandNeedBan.length == global.client.commands.size) ? getText("allCommand") : commandNeedBan.join(", "))), threadID, (error, info) => {
-				global.client.handleReaction.push({
-					type: "banCommand",
-					targetID,
-					commandNeedBan,
-					nameTarget,
-					name: this.config.name,
-					messageID: info.messageID,
-					author: event.senderID,
-					
-				});
-			}, messageID);
-		}
+    // إذا كانت هناك لعبة نشطة وتنتظر ردًا، لا تبدأ لعبة جديدة
+    if (activeGame[threadID] && command !== "الغاء_اللعبة") {
+        return api.sendMessage("🚫 هناك لعبة نشطة بالفعل في هذه المحادثة. يرجى الانتظار حتى تنتهي أو استخدام 'games الغاء_اللعبة'.", threadID, messageID);
+    }
+    
+    // أمر إلغاء اللعبة
+    if (command === "الغاء_اللعبة") {
+        if (activeGame[threadID]) {
+            delete activeGame[threadID];
+            delete lockCodes[threadID]; // مسح رمز القفل إذا كان هناك
+            return api.sendMessage("✅ تم إلغاء اللعبة النشطة في هذه المحادثة.", threadID, messageID);
+        } else {
+            return api.sendMessage("❌ لا توجد لعبة نشطة لإلغائها في هذه المحادثة.", threadID, messageID);
+        }
+    }
 
-		case "unbanCommand":
-		case "-ubc": {
-			if (!global.data.allUserID.includes(targetID)) return api.sendMessage(getText("IDNotFound", "[ UnbanCommand User ]"), threadID, messageID);
-			if (!global.data.commandBanned.has(targetID)) return api.sendMessage(getText("notExistBanCommand"), threadID, messageID);
-			if (reason == null || reason.length == 0) return api.sendMessage(getText("missingCommandInput", "[ UnbanCommand User ]"), threadID, messageID);
-			if (reason == "all") {
-				reason = (global.data.commandBanned.get(targetID)).join(" ");
-			}
-			const commandNeedBan = reason.split(" ");
-			const nameTarget = global.data.userName.get(targetID) || await Users.getNameUser(targetID);
-			return api.sendMessage(getText("returnUnbanCommand", `${targetID} - ${nameTarget}`, ((commandNeedBan.length == global.data.commandBanned.get(targetID).length) ? getText("allCommand") : commandNeedBan.join(", "))), threadID, (error, info) => {
-				global.client.handleReaction.push({
-					type: "unbanCommand",
-					targetID,
-					commandNeedBan,
-					nameTarget,
-					name: this.config.name,
-					messageID: info.messageID,
-					author: event.senderID,
-					
-				});
-			}, messageID);
-		}
+    // ========== 🚫 أمر حظر / إلغاء حظر ==========
+    if (command === "حظر") {
+        if (senderID !== DEVELOPER_ID) {
+            return api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
+        }
 
-		case "list":
-		case "-l": {
-			var listBan = [], i = 0;
-			const threadData = global.data.userBanned.keys();
-			for (; ;) {
-				let idUser = String(threadData.next().value);
-				if (typeof idUser == "undefined") {
-					const userName = (await Users.getData(idUser)).name || "unknown";
-					listBan.push(`${i+=1}/ ${idUser} - ${userName}`);
-				}
-				if (i == global.data.userBanned.size || i == (parseInt(reason) || 10)) break;
-			}
-			return api.sendMessage(getText("returnList",(global.data.userBanned.size || 0), listBan.length, listBan.join("\n")), threadID, messageID);
-		}
+        const mentionID = Object.keys(mentions)[0];
+        if (!mentionID) {
+            return api.sendMessage(`❌ استخدم: games حظر @[الشخص] لحظر مستخدم، أو games حظر إلغاء @[الشخص] لإلغاء الحظر.`, threadID, messageID);
+        }
 
-		case "info":
-		case "-i": {
-			if (!global.data.allUserID.includes(targetID)) return api.sendMessage(getText("IDNotFound", "[ Info User ]"), threadID, messageID);
-			if (global.data.commandBanned.has(targetID)) { var commandBanned = global.data.commandBanned.get(targetID) || [] };
-			if (global.data.userBanned.has(targetID)) { var { reason, dateAdded } = global.data.userBanned.get(targetID) || {} };
-			const nameTarget = global.data.userName.get(targetID) || await Users.getNameUser(targetID);
-			return api.sendMessage(getText("returnInfo", `${targetID} - ${nameTarget}`, ((!dateAdded) ? "YES" : "NO"), ((reason) ? `${getText("reson")}: "${reason}"` : ""), ((dateAdded) ? `${getText("at")}: ${dateAdded}` : ""), ((commandBanned) ? `YES: ${(commandNeedBan.length == global.client.commands.size) ? getText("allCommand") : commandNeedBan.join(", ")}` : "NO")), threadID, messageID);
-		}
-	}
-}
+        if (args[1]?.toLowerCase() === "إلغاء") {
+            const index = bannedUsers.indexOf(mentionID);
+            if (index > -1) {
+                bannedUsers.splice(index, 1);
+                saveBannedUsers(bannedUsers);
+                return api.sendMessage(`✅ تم إلغاء حظر المستخدم @${mentionID} بنجاح.`, threadID, messageID);
+            } else {
+                return api.sendMessage(`❌ المستخدم @${mentionID} ليس محظوراً أصلاً.`, threadID, messageID);
+            }
+        } else {
+            if (!bannedUsers.includes(mentionID)) {
+                bannedUsers.push(mentionID);
+                saveBannedUsers(bannedUsers);
+                return api.sendMessage(`✅ تم حظر المستخدم @${mentionID} من استخدام الكود.`, threadID, messageID);
+            } else {
+                return api.sendMessage(`❌ المستخدم @${mentionID} محظور بالفعل.`, threadID, messageID);
+            }
+        }
+    }
+
+    // ========== 💰 رصيدي ==========
+    if (command === "رصيدي") {
+        setTimeout(() => {
+            api.sendMessage(`💸 رصيدك الحالي: ${balance[senderID]} SP`, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // ========== ➕ زيادة (محدث) ==========
+    if (command === "زيادة") {
+        if (senderID !== DEVELOPER_ID) {
+            return api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
+        }
+
+        if (!messageReply) {
+            return api.sendMessage("💡 لزيادة الرصيد، يجب عليك الرد على رسالة الشخص المستهدف مع كتابة 'زيادة [المبلغ]'.", threadID, messageID);
+        }
+
+        const targetID = messageReply.senderID;
+        const amount = parseInt(args[1]);
+
+        if (isNaN(amount) || amount <= 0) {
+            setTimeout(() => {
+                api.sendMessage(`❌ الرجاء تحديد مبلغ صحيح للزيادة. مثال: الرد على رسالة الشخص وكتابة 'زيادة 100'.`, threadID, messageID);
+            }, 5000);
+            return;
+        }
+
+        if (!balance[targetID]) balance[targetID] = 0;
+        balance[targetID] += amount;
+        saveBalance(balance);
+
+        setTimeout(() => {
+            api.sendMessage(`✅ تم إضافة ${amount} SP إلى @${targetID} (رصيده الآن: ${balance[targetID]} SP)`, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // ========== 🎰 رهان ==========
+    if (command === "رهان") {
+        const betAmount = parseInt(args[1]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+            setTimeout(() => {
+                api.sendMessage("❌ ضع مبلغ صحيح مثل: games رهان 100", threadID, messageID);
+            }, 5000);
+            return;
+        }
+
+        if (balance[senderID] < betAmount) {
+            setTimeout(() => {
+                api.sendMessage("🚫 لا تملك رصيد كافي للمراهنة.", threadID, messageID);
+            }, 5000);
+            return;
+        }
+
+        const result = Math.random() < 0.5 ? "خسرت" : "ربحت";
+        let msg = "";
+
+        if (result === "ربحت") {
+            balance[senderID] += betAmount;
+            msg = `🎉 مبروك ربحت ${betAmount} SP!\n💰 رصيدك الآن: ${balance[senderID]} SP`;
+        } else {
+            balance[senderID] -= betAmount;
+            msg = `💔 للأسف خسرت ${betAmount} SP\n💰 رصيدك الآن: ${balance[senderID]} SP`;
+        }
+
+        saveBalance(balance);
+        setTimeout(() => {
+            api.sendMessage(msg, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // ========== 🎮 الألعاب الجديدة والمحدثة ==========
+
+    // 1. رهان المبلغ (مدمجة مع رهان حالية)
+    if (command === "bet") {
+        // تم دمجها مع أمر "رهان"
+        const betAmount = parseInt(args[1]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+            setTimeout(() => {
+                api.sendMessage("❌ استخدم: games bet [المبلغ]", threadID, messageID);
+            }, 5000);
+            return;
+        }
+        if (balance[senderID] < betAmount) {
+            setTimeout(() => {
+                api.sendMessage("🚫 لا تملك رصيد كافي للمراهنة.", threadID, messageID);
+            }, 5000);
+            return;
+        }
+
+        const win = Math.random() < 0.5;
+        let msg = "";
+        if (win) {
+            balance[senderID] += betAmount;
+            msg = `🎉 مبروك! ربحت ${betAmount} SP. رصيدك الآن: ${balance[senderID]} SP`;
+        } else {
+            balance[senderID] -= betAmount;
+            msg = `💔 للأسف! خسرت ${betAmount} SP. رصيدك الآن: ${balance[senderID]} SP`;
+        }
+        saveBalance(balance);
+        setTimeout(() => {
+            api.sendMessage(msg, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // 2. أسرع شخص يرسل الإيموجي (محدثة)
+    if (command === "ايموجي") {
+        const randomEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+        setTimeout(() => {
+            api.sendMessage(`🚨 تحدي سريع!\nأول من يرسل: ${randomEmoji} 🏁`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "emoji", answer: randomEmoji, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 3. فكك اسم أنمي (محدثة)
+    if (command === "فكك") {
+        const word = animeNames[Math.floor(Math.random() * animeNames.length)];
+        const shuffledWord = word.split("").sort(() => 0.5 - Math.random()).join(" ");
+        setTimeout(() => {
+            api.sendMessage(`🧩 فكك الكلمة المشفرة إلى اسم أنمي: ${shuffledWord}`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "fakkak_anime", answer: word, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 4. أول من يكتب الكلمة (محدثة)
+    if (command === "اكتب") {
+        const randomWord = difficultWords[Math.floor(Math.random() * difficultWords.length)];
+        setTimeout(() => {
+            api.sendMessage(`✍️ أسرع شخص يكتب الكلمة التالية بشكل صحيح: "${randomWord}"`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "write_word", answer: randomWord, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 5. رتب الكلمة (محدثة)
+    if (command === "رتب") {
+        const word = animeNames[Math.floor(Math.random() * animeNames.length)];
+        const shuffledLetters = word.split("").sort(() => 0.5 - Math.random()).join(" ");
+        setTimeout(() => {
+            api.sendMessage(`🔄 رتب الحروف لتكون كلمة صحيحة: "${shuffledLetters}"`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "arrange_word", answer: word, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 6. لعبة النرد
+    if (command === "نرد") {
+        const betAmount = parseInt(args[1]);
+        if (isNaN(betAmount) || betAmount <= 0) {
+            setTimeout(() => {
+                api.sendMessage("❌ استخدم: games نرد [المبلغ] للمراهنة.", threadID, messageID);
+            }, 5000);
+            return;
+        }
+        if (balance[senderID] < betAmount) {
+            setTimeout(() => {
+                api.sendMessage("🚫 لا تملك رصيد كافي للمراهنة على النرد.", threadID, messageID);
+            }, 5000);
+            return;
+        }
+
+        const diceRoll = Math.floor(Math.random() * 6) + 1; // 1-6
+        let msg = `🎲 رميت النرد وجاء الرقم: ${diceRoll}\n`;
+        if (diceRoll >= 4) {
+            balance[senderID] += betAmount;
+            msg += `🎉 مبروك! فزت بـ${betAmount} SP. رصيدك الآن: ${balance[senderID]} SP`;
+        } else {
+            balance[senderID] -= betAmount;
+            msg += `💔 للأسف! خسرت ${betAmount} SP. رصيدك الآن: ${balance[senderID]} SP`;
+        }
+        saveBalance(balance);
+        setTimeout(() => {
+            api.sendMessage(msg, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // 7. كم عدد الحروف؟
+    if (command === "عدد_حروف") {
+        const randomWord = difficultWords[Math.floor(Math.random() * difficultWords.length)];
+        setTimeout(() => {
+            api.sendMessage(`🔤 ما هو عدد حروف الكلمة التالية: "${randomWord}"؟`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "count_letters", answer: randomWord.length.toString(), messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 8. ضاعف فلوسك (مدمجة مع أمر bet بتعديل النسبة)
+    // يمكن اعتبار أمر "bet" الحالي هو "ضاعف فلوسك" بنسبة 50% فوز.
+
+    // 9. لعبة الهدف
+    if (command === "هدف") {
+        const targetEmoji = "🎯";
+        setTimeout(() => {
+            api.sendMessage(`🎯 لعبة الهدف! أول من يرسل الإيموجي: ${targetEmoji} يكسب!`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "target_emoji", answer: targetEmoji, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 10. أسرع تخمين رقم
+    if (command === "تخمين_رقم") {
+        const randomNumber = Math.floor(Math.random() * 10) + 1; // رقم بين 1 و 10
+        setTimeout(() => {
+            api.sendMessage(`🥇 أخفيت رقمًا بين 1 و 10. من يخمّنه أولاً يكسب!`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "guess_number", answer: randomNumber.toString(), messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 11. معكوس الكلمة
+    if (command === "معكوس") {
+        const word = animeNames[Math.floor(Math.random() * animeNames.length)];
+        const reversedWord = word.split("").reverse().join("");
+        setTimeout(() => {
+            api.sendMessage(`🧠 ما هو معكوس الكلمة: "${reversedWord}"؟`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "reverse_word", answer: word, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 12. كلمة بدون نقاط (تحتاج إلى قائمة أكبر من الكلمات)
+    if (command === "بدون_نقاط") {
+        const exampleWords = [
+            { word: "حسن", noDots: true },
+            { word: "خالد", noDots: false },
+            { word: "سعاد", noDots: true },
+            { word: "نبيل", noDots: false }
+        ];
+        const randomExample = exampleWords[Math.floor(Math.random() * exampleWords.length)];
+        const question = `🤓 أي من الكلمتين التاليتين لا تحتوي على نقاط؟ "${randomExample.word}" أو "${exampleWords.find(w => w !== randomExample).word}"؟`; // بسيط مؤقت
+        // هذا يحتاج لمنطق أكثر تعقيداً لتوليد السؤال والتحقق من الإجابة الصحيحة
+        setTimeout(() => {
+            api.sendMessage(question, threadID, messageID);
+            // activeGame[threadID] = { type: "no_dots_word", answer: randomExample.noDots ? randomExample.word : exampleWords.find(w => w.noDots).word, messageID: info.messageID, winner: null };
+            // تم تعطيل تتبع اللعبة في handleEvent لهذه اللعبة لأنها معقدة وتتطلب قائمة أكبر من الكلمات ومقارنة دقيقة.
+        }, 5000);
+        return;
+    }
+
+    // 13. اسرع من يرد بـ...
+    if (command === "دولة_بحرف") {
+        const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26)); // حرف عشوائي (غير فعال مع العربية بشكل مباشر)
+        const arabicLetters = ['أ', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'];
+        const randomArabicLetter = arabicLetters[Math.floor(Math.random() * arabicLetters.length)];
+
+        setTimeout(() => {
+            api.sendMessage(`⏱️ أرسل اسم دولة تبدأ بحرف "${randomArabicLetter}" بأسرع وقت!`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "country_letter", answer: randomArabicLetter, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 14. اختبار ذكاء سريع
+    if (command === "اختبار_ذكاء") {
+        const question = "🧠 إذا كان 1=5 و 2=25، فكم 3؟";
+        setTimeout(() => {
+            api.sendMessage(question, threadID, (err, info) => {
+                activeGame[threadID] = { type: "iq_test", answer: "3", messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 15. افتح القفل
+    if (command === "افتح_القفل") {
+        const code = Math.floor(Math.random() * 900) + 100; // رقم 3 أرقام
+        lockCodes[threadID] = code.toString();
+        setTimeout(() => {
+            api.sendMessage(`🔐 رمز القفل من 3 أرقام. حاول تخمينه! مثال: 123`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "open_lock", answer: code.toString(), messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 16. تحدي لاعب ضد لاعب (يحتاج لميكانيكية طلب وموافقة)
+    if (command === "تحدي") {
+        const challengedUser = Object.keys(mentions)[0];
+        if (!challengedUser || challengedUser === senderID) {
+            return api.sendMessage("❌ لتحدي لاعب، قم بعمل تاغ للشخص الذي تريد تحديه: games تحدي @[الشخص] [المبلغ].", threadID, messageID);
+        }
+        const betAmount = parseInt(args[2]); // المبلغ بعد التاغ
+        if (isNaN(betAmount) || betAmount <= 0) {
+            return api.sendMessage("❌ يجب تحديد مبلغ الرهان في التحدي. مثال: games تحدي @[الشخص] 100.", threadID, messageID);
+        }
+        if (balance[senderID] < betAmount || balance[challengedUser] < betAmount) {
+             return api.sendMessage("🚫 لا تملك أنت أو خصمك رصيد كافي لهذا التحدي.", threadID, messageID);
+        }
+
+        // هنا تحتاج لمنطق للتعامل مع الموافقة على التحدي من الشخص الآخر
+        setTimeout(() => {
+            api.sendMessage({
+                body: `⚔️ @${senderID} تحدى @${challengedUser} في نزال نرد على ${betAmount} SP! @${challengedUser}، هل تقبل التحدي؟ (اكتب 'أقبل التحدي' للقبول)`,
+                mentions: [{tag: `@${senderID}`, id: senderID}, {tag: `@${challengedUser}`, id: challengedUser}]
+            }, threadID, messageID);
+            activeGame[threadID] = {
+                type: "player_vs_player_challenge",
+                challengerID: senderID,
+                challengedID: challengedUser,
+                bet: betAmount,
+                status: "waiting_acceptance",
+                messageID: messageID // لتتبع الرسالة الأصلية للتحدي
+            };
+        }, 5000);
+        return;
+    }
+
+
+    // 17. فكك جملة
+    if (command === "فكك_جملة") {
+        const sentence = "ناروتو قوي"; // يمكنك إضافة جمل أخرى في مصفوفة
+        const answer = sentence.split("").join(" ");
+        setTimeout(() => {
+            api.sendMessage(`🧩 فكك الجملة التالية بسرعة: "${sentence}"`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "fakkak_sentence", answer: answer, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 18. أين تقع الدولة؟
+    if (command === "أين_تقع") {
+        const countriesData = [
+            { country: "فنلندا", continent: "أوروبا" },
+            { country: "اليابان", continent: "آسيا" },
+            { country: "مصر", continent: "أفريقيا" },
+            { country: "البرازيل", continent: "أمريكا الجنوبية" }
+        ];
+        const randomCountry = countriesData[Math.floor(Math.random() * countriesData.length)];
+        setTimeout(() => {
+            api.sendMessage(`🗺️ في أي قارة تقع دولة "${randomCountry.country}"؟`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "where_is_country", answer: randomCountry.continent, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 19. من الشخصية؟
+    if (command === "شخصية") {
+        const characters = [
+            { name: "ناروتو", hint: "نينجا، يرتدي برتقالي، يحب الرامن" },
+            { name: "غوكو", hint: "ساياجين، قوي جداً، يأكل كثيراً" },
+            { name: "لوفي", hint: "قرصان، جسده مطاطي، يبحث عن الون بيس" }
+        ];
+        const randomCharacter = characters[Math.floor(Math.random() * characters.length)];
+        setTimeout(() => {
+            api.sendMessage(`🕵️‍♂️ من هذه الشخصية؟ تلميح: "${randomCharacter.hint}"`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "guess_character", answer: randomCharacter.name, messageID: info.messageID, winner: null };
+            });
+        }, 5000);
+        return;
+    }
+
+    // 20. لعبة القنبلة (تحتاج لمنطق `handleEvent` معقد للعد التنازلي)
+    if (command === "قنبلة") {
+        const countdownTime = 10; // 10 ثواني
+        let count = countdownTime;
+        
+        setTimeout(() => {
+            api.sendMessage(`💣 بدأت لعبة القنبلة! آخر من يرد قبل انتهاء العد التنازلي يخسر! العد التنازلي: ${count}...`, threadID, (err, info) => {
+                activeGame[threadID] = { type: "bomb_game", countdown: count, timer: null, lastReplier: null, messageID: info.messageID };
+
+                activeGame[threadID].timer = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        api.sendMessage(`${count}...`, threadID);
+                    } else {
+                        clearInterval(activeGame[threadID].timer);
+                        let msg = "";
+                        if (activeGame[threadID].lastReplier) {
+                             msg = `💥 بوم! انتهى الوقت. الفائز هو @${activeGame[threadID].lastReplier} لأنه رد آخر واحد قبل العد.`;
+                        } else {
+                            msg = `💥 بوم! لم يرد أحد في الوقت المحدد. انتهت اللعبة بدون فائز.`;
+                        }
+                        api.sendMessage(msg, threadID);
+                        delete activeGame[threadID];
+                    }
+                }, 1000); // تحديث كل ثانية
+            });
+        }, 5000); // 5 ثواني قبل بدء اللعبة
+        return;
+    }
+
+
+    // رسالة الاستخدام الافتراضية
+    setTimeout(() => {
+        api.sendMessage(`❓ الأوامر المتاحة: 
+        💰 الأرصدة: رصيدي, رهان [مبلغ], bet [مبلغ]
+        🎮 الألعاب: ايموجي, فكك, اكتب, رتب, نرد, عدد_حروف, هدف, تخمين_رقم, معكوس, بدون_نقاط, دولة_بحرف, اختبار_ذكاء, افتح_القفل, تحدي @[شخص] [مبلغ], فكك_جملة, أين_تقع, شخصية, قنبلة
+        🛠️ للمطور فقط: زيادة (بالرد), حظر @[شخص], حظر إلغاء @[شخص]
+        ❌ لإلغاء لعبة نشطة: الغاء_اللعبة
+        `, threadID, messageID);
+    }, 5000);
+};
+
+// 📥 handleEvent للألعاب السريعة
+module.exports.handleEvent = function({ api, event }) {
+    const { threadID, body, senderID, messageID } = event;
+    const bannedUsers = getBannedUsers();
+    const balance = getBalance(); // قم بتحميل الرصيد هنا لاستخدامه في handleEvent
+
+    // التحقق إذا كان المستخدم محظوراً
+    if (bannedUsers.includes(senderID)) {
+        return;
+    }
+
+    if (!activeGame[threadID]) return;
+    const game = activeGame[threadID];
+    const userAnswer = body?.trim().toLowerCase(); // تحويل الإجابة إلى حروف صغيرة للمقارنة
+
+    // منع نفس الفائز من الفوز مرتين في نفس اللعبة
+    if (game.winner && game.winner === senderID) return;
+
+    const winnerTag = {
+        tag: `الفائز (${senderID})`, // يمكنك الحصول على اسم المستخدم من api إذا كان متاحًا
+        id: senderID
+    };
+
+    let isCorrect = false;
+
+    switch (game.type) {
+        case "emoji":
+        case "target_emoji":
+        case "write_word":
+        case "guess_number":
+        case "reverse_word":
+        case "fakkak_anime":
+        case "arrange_word":
+        case "guess_character":
+        case "fakkak_sentence":
+        case "where_is_country":
+        case "iq_test":
+            if (userAnswer === game.answer.toLowerCase()) {
+                isCorrect = true;
+            }
+            break;
+        case "count_letters":
+            if (userAnswer === game.answer) { // الإجابة هي رقم، لذا لا نحتاج لـ .toLowerCase()
+                isCorrect = true;
+            }
+            break;
+        case "country_letter":
+            // هذا يتطلب قائمة بالدول تبدأ بالحرف المعطى للتحقق الفعال
+            // حالياً، نعتبر أي رد يبدأ بالحرف صحيحًا (قد لا يكون دقيقًا 100%)
+            if (userAnswer && userAnswer.startsWith(game.answer.toLowerCase())) {
+                isCorrect = true;
+            }
+            break;
+        case "open_lock":
+            if (userAnswer === game.answer) {
+                isCorrect = true;
+            } else {
+                // رسالة تلميح لـ "افتح القفل"
+                const correctDigits = [...game.answer].filter((digit, index) => digit === userAnswer[index]).length;
+                api.sendMessage(`❌ خطأ! ${correctDigits} رقم صحيح في مكانه الصحيح.`, threadID, messageID);
+            }
+            break;
+        case "player_vs_player_challenge":
+            if (game.status === "waiting_acceptance" && senderID === game.challengedID && userAnswer === "أقبل التحدي") {
+                // تبدأ لعبة النرد بين اللاعبين
+                const challengerRoll = Math.floor(Math.random() * 6) + 1;
+                const challengedRoll = Math.floor(Math.random() * 6) + 1;
+
+                let challengeMsg = `⚔️ تحدي النرد بين @${game.challengerID} و @${game.challengedID}:\n`;
+                challengeMsg += `🎲 ${game.challengerID} رمى: ${challengerRoll}\n`;
+                challengeMsg += `🎲 ${game.challengedID} رمى: ${challengedRoll}\n`;
+
+                if (challengerRoll > challengedRoll) {
+                    balance[game.challengerID] += game.bet;
+                    balance[game.challengedID] -= game.bet;
+                    challengeMsg += `🎉 الفائز هو @${game.challengerID}! ربح ${game.bet} SP.`;
+                } else if (challengedRoll > challengerRoll) {
+                    balance[game.challengedID] += game.bet;
+                    balance[game.challengerID] -= game.bet;
+                    challengeMsg += `🎉 الفائز هو @${game.challengedID}! ربح ${game.bet} SP.`;
+                } else {
+                    challengeMsg += `🤝 تعادل! لا يوجد فائز أو خاسر.`;
+                }
+                saveBalance(balance);
+                api.sendMessage({
+                    body: challengeMsg,
+                    mentions: [{tag: `@${game.challengerID}`, id: game.challengerID}, {tag: `@${game.challengedID}`, id: game.challengedID}]
+                }, threadID);
+                delete activeGame[threadID];
+            }
+            return; // لا تكمل لمعالجة الفوز العادي
+        case "bomb_game":
+            // أي رد من أي مستخدم يعيد ضبط مؤقت الخاسر
+            if (game.timer) {
+                activeGame[threadID].lastReplier = senderID;
+            }
+            return; // لا تكمل لمعالجة الفوز العادي
+    }
+
+    if (isCorrect && !game.winner) { // التحقق من عدم وجود فائز مسبق
+        api.sendMessage({
+            body: `🏆 مبروك! الفائز هو: @${winnerTag.tag}\n🎯 الإجابة الصحيحة: ${game.answer}`,
+            mentions: [winnerTag]
+        }, threadID);
+        // إضافة جائزة للفائز
+        if (!balance[senderID]) balance[senderID] = 0;
+        balance[senderID] += 50; // جائزة 50 SP للفائز
+        saveBalance(balance);
+
+        activeGame[threadID].winner = senderID; // تحديد الفائز لمنع الفوز المتعدد
+        // يمكن حذف activeGame[threadID] هنا أو بعد فترة زمنية للسماح للناس برؤية الفائز
+        // For now, let's keep it to prevent multiple winners for the same game instance
+        setTimeout(() => {
+            delete activeGame[threadID];
+        }, 3000); // حذف اللعبة بعد 3 ثواني من الفوز
+    }
+};

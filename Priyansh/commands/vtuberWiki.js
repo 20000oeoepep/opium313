@@ -1,164 +1,78 @@
+const moment = require("moment-timezone");
+
 module.exports.config = {
-	name: "vtuber_wiki",
-	version: "2.0.0",
-	hasPermssion: 0,
-	credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-	description: "Search VTubers on VTubersWiki Official",
-	commandCategory: "vtuber",
-	usages: "vtuber_wiki [vtuber name]",
-	cooldowns: 5,
- /* dependencies: {
-    "vtuber-wiki": "",
-    "axios": "",
-    "fs": "",
-    "request": ""               
-} */ 
+    name: "صديقي", // اسم الأمر
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "سواد البغدادي",
+    description: "حوار لا نهائي مع البوت",
+    commandCategory: "🤖 بوت",
+    usages: "talk [رسالتك]",
+    cooldowns: 5, // لتطبيق التأخير 5 ثواني
 };
 
+// قائمة بالكلمات المفتاحية والردود المحتملة
+const responses = {
+    "كيفك": ["الحمدلله بخير، وأنت؟", "بخير يا صديقي، ماذا عنك؟", "تمام التمام، شكراً لسؤالك."],
+    "ريو": ["أهلاً بك!", "أنا هنا، كيف يمكنني المساعدة؟", "مرحباً يا صديقي."],
+    "اسمي": ["اسمك جميل جداً!", "تشرفت بمعرفتك.", "أهلاً بك!"],
+    "ما اسمك": ["اسمي ريو.", "يمكنك مناداتي ريو.", "أنا ريو، مساعدك الذكي."],
+    "عمرك": ["أنا برنامج كمبيوتر، ليس لدي عمر حقيقي.", "لا أمتلك عمراً، لقد تم برمجتي للتو!", "أنا خالد، لا يحدني العمر."],
+    "شكرا": ["العفو!", "لا شكر على واجب.", "بكل سرور."],
+    "صباح الخير": ["صباح النور!", "يا هلا بصباحك الجميل.", "صباح الورد!"],
+    "مساء الخير": ["مساء النور!", "مساء الورد والياسمين.", "مساء العسل!"],
+    "النار": ["النار قوة مدمرة وبناءة في آن واحد.", "اللهب يرقص، ولكن احذر حرارته.", "النار يمكن أن تدفئ أو تحرق."],
+    "الماء": ["الماء هو أساس الحياة.", "قطرة ماء تساوي حياة.", "الماء هو النقاء بحد ذاته."],
+    "الاحجار": ["الأحجار تحكي قصصاً من الماضي.", "بعض الأحجار كريمة جداً.", "الصخور هي سجلات الأرض."],
+    "الشجر": ["الأشجار هي رئات الأرض.", "ظلال الأشجار توفر الراحة.", "الأشجار تمنحنا الأوكسجين والحياة."],
+    "السماء": ["السماء زرقاء وواسعة.", "النجوم تضيء السماء ليلاً.", "السماء حدودها الخيال."],
+    "الليل": ["الليل هدوء وسكون.", "النجوم تتلألأ في الليل.", "الليل هو وقت الأحلام."],
+    "النهار": ["النهار هو وقت العمل والنشاط.", "الشمس مشرقة في النهار.", "النهار يجلب معه الأمل."],
+    "الغيوم": ["الغيوم ترسم لوحات فنية في السماء.", "الغيوم تحمل المطر.", "الغيوم تبشر بالخير."],
+    "الشمس": ["الشمس مصدر الدفء والحياة.", "الشمس تشرق كل صباح.", "الشمس تمنحنا الطاقة."],
+    "القمر": ["القمر يضيء سماء الليل بجماله.", "القمر هو رفيق النجوم.", "القمر يشهد على أسرار الليل."],
+    "النجوم": ["النجوم بعيدة ولامعة.", "كل نجم يحكي قصة.", "النجوم تزين السماء."],
+    "الحب": ["الحب شعور جميل وقوي.", "الحب يجمع القلوب.", "الحب هو أساس كل شيء."],
+    "الكتاب": ["الكتاب هو خير جليس.", "في الكتب تجد المعرفة.", "الكتاب هو نافذة على عوالم أخرى."],
+    "القلم": ["القلم هو أداة العلم.", "بالقلم نخط التاريخ.", "القلم يسطر الأفكار."],
+    "الورق": ["الورق هو وعاء المعرفة.", "نكتب على الورق لتبقى الذكريات.", "الورق ينتظر أفكارك."],
+    "القهوة": ["القهوة رفيقة الصباح.", "رائحة القهوة تنعش الروح.", "فنجان قهوة يعدل المزاج."],
+    "الشاي": ["الشاي مشروب الدفء.", "لكل ثقافة شايها الخاص.", "الشاي يبعث على الهدوء."],
+    "المطر": ["المطر رحمة من السماء.", "صوت المطر يريح الأعصاب.", "المطر يروي الأرض."],
+    "الصوت": ["الصوت يعبر عن المشاعر.", "الصوت وسيلة للتواصل.", "لكل شيء صوت خاص به."],
+    "الصداقة": ["الصداقة كنز لا يفنى.", "الأصدقاء سند في الحياة.", "الصداقة رابطة قوية."],
+    // إضافة المزيد من الكلمات والردود هنا...
+};
 
-module.exports.run = async ({ api, event, args }) => {
-	const axios = require("axios");
-    const { wiki } = require("vtuber-wiki"); 
-	const request = require('request');
-	const fs = require("fs");
-  if (!args[0]) {api.sendMessage(`Search cannot leave as blank!`,event.threadID, event.messageID)}
-  else{
-var query = (event.type == "message_reply") ? event.messageReply.body : args.join(" ");
-    let Replaced = query.replace(/ /g, " ");
-  api.sendMessage(`🔎Searching for ${Replaced}...`, event.threadID, event.messageID);
+module.exports.run = async function({ api, event, args }) {
+    const { threadID, messageID } = event;
+    const userInput = args.join(" ").toLowerCase(); // تحويل رسالة المستخدم إلى حروف صغيرة للمقارنة
 
-const vtuber = await wiki(Replaced)
- .catch(err => {
-                     api.sendMessage("⚠️" + err, event.threadID, event.messageID);
-           }); 
-          if(vtuber === null) {
-    api.sendMessage(`⚠️${Replaced} not found.`, event.threadID, event.messageID)
-    return;
-          }
-   console.log(vtuber);                if (vtuber.title){ 
-    let getURL = vtuber.image_url;
+    // لا يوجد تأخير في رسالة "الاستخدام" لتوجيه المستخدم فوراً
+    if (!userInput) {
+        return api.sendMessage(`❓ كيف يمكنني مساعدتك؟ استخدم: ${this.config.name} [رسالتك]`, threadID, messageID);
+    }
 
+    let foundResponse = false;
+    for (const keyword in responses) {
+        if (userInput.includes(keyword)) {
+            const possibleResponses = responses[keyword];
+            const randomResponse = possibleResponses[Math.floor(Math.random() * possibleResponses.length)];
+            
+            setTimeout(() => {
+                api.sendMessage(randomResponse, threadID, messageID);
+            }, 5000); // 5 ثواني تأخير
+            foundResponse = true;
+            break;
+        }
+    }
 
-   if (!vtuber.title || vtuber.title === undefined) vtuber.title = "Not Found";
-  
-    if (!vtuber.gender || vtuber.gender === undefined) vtuber.gender = "Not Found";
-  
-  if (!vtuber.birthday || vtuber.birthday === undefined) vtuber.birthday = "Not Found";
-
-  if (!vtuber.height || vtuber.height === undefined) vtuber.height = "Not Found";
-
-  if (!vtuber.weight || vtuber.weight === undefined) vtuber.weight = "Not Found";
-
-
-
-  
-var v1 = vtuber.title;
-var v2 = vtuber.gender;
-var v3 = vtuber.age.replace(/<ref>/g, " ");
-var v4 = vtuber.birthday;
-var v5 = vtuber.description;
-var v6 = vtuber.more;
-var v7 = vtuber.height;
-var v8 = vtuber.weight;
-var v9 = vtuber.channel.replace(/<br>/g, "\n\n");
-var v10 = vtuber.social_media.replace(/<br>/g, "\n\n");
-var v11 = vtuber.official_website.replace(/<br>/g, "\n\n");
-var v12 = vtuber.affiliation
-
-  //var v11 = bb.replace(/<br>/g, "\n\n");
-
-
- 
-        let callback = function () {           
-          
-
-   
- api.sendMessage({
-     body:`Title: ${v1}\nAffiliation: ${v12}\nGender: ${v2}\nAge: ${v3}\nBirthday: ${v4}\nHeight: ${v7}\nWeight: ${v8}\n\nDescription: ${v5}\n\nChannel: ${v9}\n\nSocial Media: ${v10}\n\nSource(s): ${v11}\n\nMore Info: ${v6}`, 
-					attachment: fs.createReadStream(__dirname + `/cache/vtuber.png`)
-					}, event.threadID, () => fs.unlinkSync(__dirname + `/cache/vtuber.png`), event.messageID)
-				}
-    
- //   }
-        request(getURL).pipe(fs.createWriteStream(__dirname + `/cache/vtuber.png`)).on("close", callback)  
-  } 
-   else if (vtuber.title1){
-
-let getURL = vtuber.image_url;
-
-
-   if (!vtuber.title1 || vtuber.title1 === undefined) vtuber.title1 = "N/A";
-  
-    if (!vtuber.gender || vtuber.gender === undefined) vtuber.gender = "N/A";
-  
-  if (!vtuber.birthday || vtuber.birthday === undefined) vtuber.birthday = "N/A";
-
-  if (!vtuber.height || vtuber.height === undefined) vtuber.height = "N/A";
-   
-  if (!vtuber.zodiac_sign || vtuber.zodiac_sign === undefined) vtuber.zodiac_sign = "N/A";
-        if (!vtuber.official_website || vtuber.official_website === undefined) vtuber.official_website = "N/A";
-
-var v1 = vtuber.title1;
-var v2 = vtuber.caption1;
-var v3 = vtuber.original_name;
-var v4 = vtuber.nick_name.replace(/<br>/g, "\n");
-var v5 = vtuber.debut_date;
-var v6 = vtuber.character_designer;
-var v7 = vtuber.affiliation;
-var v8 = vtuber.gender;
-var v9 = vtuber.age;
-var v10 = vtuber.birthday;
-var v11 = vtuber.official_website; 
-var v12 = vtuber.height;
-var v13 = vtuber.zodiac_sign;
-var v14 = vtuber.description;
-var v15 = vtuber.channel.replace(/<br>/g, "\n\n");
-var v16 = vtuber.social_media.replace(/<br>/g, "\n\n");
-var v17 = vtuber.more;
-
-       let callback = function () {           
-             
- api.sendMessage({
-     body: `Name: ${v1}\nOriginal Name: ${v3}\nNick Name: ${v4}\nPopular Line: ${v2}\nDebut Date: ${v5}\nChar.Designer: ${v6}\nAffiliation: ${v7}\nGender: ${v8}\nAge: ${v9}\nBirthday: ${v10}\nHeight: ${v12}\nZodiac Sign: ${v13}\n\nDescription: ${v14}\n\nChannel Link(s): ${v15}\n\nSocial Media(s): ${v16}\n\nSource(s): ${v11}\n\nMore: ${v17}`,
-					attachment: fs.createReadStream(__dirname + `/cache/vtuber.png`)
-					}, event.threadID, () => fs.unlinkSync(__dirname + `/cache/vtuber.png`), event.messageID)
-				}
-    
- //   }
-        request(getURL).pipe(fs.createWriteStream(__dirname + `/cache/vtuber.png`)).on("close", callback)  
-  } 
-   else if (vtuber.nick_name){
-      
-    let getURL = vtuber.image_url;
-
- 
-var v1 = vtuber.nick_name.replace(/\x3c\x62\x72\x20\x2f\x3e/g, "\n");
-var v2 = vtuber.debut_date;
-var v3 = vtuber.character_designer;
-var v4 = vtuber.affiliation.replace(/\x3c\x62\x72\x20\x2f\x3e/g, "\n");
-var v5 = vtuber.channel;
-var v6 = vtuber.gender;
-var v7 = vtuber.age;
-var v8 = vtuber.birthday;
-var v9 = vtuber.height;
-var v10 = vtuber.caption1;
-var v11 = vtuber.zodiac_sign;
-var v12 = vtuber.description;
-var v13 = vtuber.social_media;
-var v14 = vtuber.more;
-
-  let callback = function () {           
-             
- api.sendMessage({
-     body: `Name: ${v1}\nDebut Date: ${v2}\nCharacter Designer: ${v3}\nAffiliation: ${v4}\nGender: ${v6}\nAge: ${v7}\nBirthday: ${v8}\nHeight: ${v9}\nPopular Line: ${v10}\nZodiac Sign: ${v11}\n\nDescription: ${v12}\n\nSocial Media(s): ${v13}\n\nChannel: ${v5}\n\nMore info(s): ${v14}`,
-					attachment: fs.createReadStream(__dirname + `/cache/vtuber.png`)
-					}, event.threadID, () => fs.unlinkSync(__dirname + `/cache/vtuber.png`), event.messageID)
-      }
-
-request(getURL).pipe(fs.createWriteStream(__dirname + `/cache/vtuber.png`)).on("close", callback)  
-  } 
-    
-}		
-}
-
-
+    // إذا لم يتم العثور على كلمة مفتاحية، حاول تجميع الأحرف
+    if (!foundResponse) {
+        const letters = userInput.replace(/\s/g, '').split('').join(' '); // إزالة المسافات وتجميع الأحرف
+        
+        setTimeout(() => {
+            api.sendMessage(`لم أفهم تماماً، لكنني أرى هذه الأحرف: ${letters}. هل يمكنك توضيح أكثر؟`, threadID, messageID);
+        }, 5000); // 5 ثواني تأخير
+    }
+};

@@ -1,141 +1,274 @@
-module.exports.config = {
-	name:"uptime",
-	version: "1.0.0",
-	hasPermssion: 0,
-	credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-	description: "Random anime image api - uptime",
-	commandCategory: "Banner",
-	cooldowns: 3,
-  dependencies: {
-		"pidusage": ""
-	}
-};
-function byte2mb(bytes) {
-	const units = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-	let l = 0, n = parseInt(bytes, 10) || 0;
-	while (n >= 1024 && ++l) n = n / 1024;
-	return `${n.toFixed(n < 10 && l > 0 ? 1 : 0)} ${units[l]}`;
-}
-module.exports.run = async ({ api, event, args }) => {
-const time = process.uptime() ,
-		hours = Math.floor(time / (100 * 110)),
-		minutes = Math.floor((time % (100* 99)) / 88),
-		seconds = Math.floor(time % 110);
-  var z_1 = (hours < 10) ? '0' + hours : hours;
-    var x_1 = (minutes < 10) ? '0' + minutes : minutes;
-    var y_1 = (seconds < 10) ? '0' + seconds : seconds;
-  const { commands } = global.client;
-  const moment = require("moment-timezone");
-  const timeNow = moment.tz("Asia/Manila").format("DD/MM/YYYY || HH:mm:s");
-    const axios = require('axios')
-	const pidusage = await global.nodemodule["pidusage"](process.pid);
-	const timeStart = Date.now();
-  const fs = require('fs-extra');
-   if (!fs.existsSync(__dirname +
-        `/tad/UTM-Avo.ttf`)) {
-        let getfont = (await axios.get(`https://github.com/hanakuUwU/font/raw/main/UTM%20Avo.ttf`, { responseType: "arraybuffer" })).data;
-        fs.writeFileSync(__dirname + `/tad/UTM-Avo.ttf`, Buffer.from(getfont, "utf-8"));
-      }
-         if (!fs.existsSync(__dirname +
-      `/tad/phenomicon.ttf`)) {
-      let getfont2 = (await axios.get(`https://github.com/hanakuUwU/font/raw/main/phenomicon.ttf`, { responseType: "arraybuffer" })).data;
-      fs.writeFileSync(__dirname + `/tad/phenomicon.ttf`, Buffer.from(getfont2, "utf-8"));
-    };
-  if (!fs.existsSync(__dirname +
-      `/tad/CaviarDreams.ttf`)) {
-      let getfont3 = (await axios.get(`https://github.com/hanakuUwU/font/raw/main/CaviarDreams.ttf`, { responseType: "arraybuffer" })).data;
-      fs.writeFileSync(__dirname + `/tad/CaviarDreams.ttf`, Buffer.from(getfont3, "utf-8"));
-    };
-   const { loadImage, createCanvas, registerFont } = require("canvas");
-  
-  let k = args[0];
-   if(args[0] == "list"){
-    const alime = (await axios.get('https://raw.githubusercontent.com/mraikero-01/saikidesu_data/main/anilist2.json')).data
-    var count = alime.listAnime.length;
-      var data = alime.listAnime
-      var page = 1;
-      page = parseInt(args[1]) || 1;
-      page < -1 ? page = 1 : "";
-      var limit = 20;
-      var numPage = Math.ceil(count/limit);
-      var msg = ``;
-      for(var i = limit*(page - 1); i < limit*(page-1) + limit; i++){
-         if(i >= count) break;
-        msg += `[ ${i+1} ] - ${data[i].ID} | ${data[i].name}\n`;
-      }
-      msg += `Trang ( ${page}/${numPage} )\nDùng ${global.config.PREFIX}${this.config.name} list < số trang >`;
-      return api.sendMessage(msg, event.threadID,event.messageID);
-   }
-  if(!k){
-  var id = Math.floor(Math.random() * 883) +1
-  } else {
-    var id = k
-  }
-  const loz = ["https://i.imgur.com/9jbBPIM.jpg","https://i.imgur.com/cPvDTd9.jpg","https://i.imgur.com/ZT8CgR1.jpg","https://i.imgur.com/WhOaTx7.jpg","https://i.imgur.com/BIcgJOA.jpg","https://i.imgur.com/EcJt1yq.jpg","https://i.imgur.com/0dtnQ2m.jpg"]
-    const lengthchar = (await axios.get('https://raw.githubusercontent.com/mraikero-01/saikidesu_data/main/imgs_data2.json')).data
-    console.log(lengthchar.length)
-  const Canvas = require('canvas');
-    let pathImg = __dirname + `/tad/avatar_1111231.png`;
-    let pathAva = __dirname + `/tad/avatar_3dsc11.png`;
-    let background = (await axios.get(encodeURI((loz[Math.floor(Math.random() * loz.length)])), { responseType: "arraybuffer" })).data;
-    fs.writeFileSync(pathImg, Buffer.from(background, "utf-8"));
-    let ava = (await axios.get(encodeURI(`${lengthchar[id - 1].imgAnime}`), { responseType: "arraybuffer" })).data;
-    fs.writeFileSync(pathAva, Buffer.from(ava, "utf-8"));
-    const request = require('request');
-    const path = require('path');
+const fs = require("fs");
+const moment = require("moment-timezone");
 
-  //const a = Math.floor(Math.random() * 820) + 1
-  
-  
-let l1 = await loadImage(pathAva);
-    let a = await loadImage(pathImg);
-    let canvas = createCanvas(a.width, a.height);
-    var ctx = canvas.getContext("2d");
-    ctx.fillStyle = lengthchar[id - 1].colorBg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.drawImage(a, 0, 0, canvas.width, canvas.height);
-  ctx.drawImage(l1, 800, -160, 1100, 1100);
-     registerFont(__dirname + `/tad/phenomicon.ttf`, {
-      family: "phenomicon"
-    });
-    ctx.textAlign = "start";
-    ctx.strokeStyle = lengthchar[id - 1].colorBg;
-    ctx.filter = "brightness(90%) contrast(110%)";
-    ctx.font = "130px phenomicon";
-    ctx.fillStyle = lengthchar[id].colorBg;
-    ctx.fillText("UPTIME ROBOT", 95, 340);
-    ctx.beginPath();
-  ////////////////////////////////////////
-   registerFont(__dirname + `/tad/UTM-Avo.ttf`, {
-      family: "UTM"
-    });
-    ctx.textAlign = "start";
-    ctx.font = "70px UTM";
-    ctx.fillStyle = "#fdfdfd";
-    ctx.fillText(`${z_1} : ${x_1} : ${y_1} `, 180, 440);
-    ctx.restore();
-    ctx.save();
-registerFont(__dirname + `/tad/CaviarDreams.ttf`, {
-      family: "time"
-    });
-    ctx.textAlign = "start";
-    ctx.font = "45px time";
-    ctx.fillText("@" + "priyanshu.rajput.official", 250, 515)
-    ctx.fillText("@" + "pri_yanshu12", 250, 575)
-   //ctx.fillText("@" + "DVFB.VietLe.pro", 405, 750)
-    ctx.restore();
-    ctx.save();
-    ctx.beginPath();
-    const imageBuffer = canvas.toBuffer();
-   fs.writeFileSync(pathImg, imageBuffer);
-  return api.sendMessage({
-    body: `┃======{ 𝗨𝗣𝗧𝗜𝗠𝗘 𝗥𝗢𝗕𝗢𝗧 }======┃\n\n→ Bot worked  ${hours} hours ${minutes} minutes ${seconds} seconds \n•━━━━━━━━━━━━━━━━━━━━━━━━•\n➠ 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭\n➠ Bo𝐭 Name: ${global.config.BOTNAME}\n➠ Bot Prefix: ${global.config.PREFIX}\n➠ Commands count: ${commands.size}\n➠ Total Users: ${global.data.allUserID.length}\n➠ Total thread: ${global.data.allThreadID.length}\n➠ CPU in use:: ${pidusage.cpu.toFixed(1)}%\n➠ RAM: ${byte2mb(pidusage.memory)}\n➠ Ping: ${Date.now() - timeStart}ms\n➠ Character ID𝐭: ${id}\n•━━━━━━━━━━━━━━━━━━━━━━━━•\n[ ${timeNow} ]`,
-    attachment: fs.createReadStream(pathImg)
-  },
-    event.threadID,
-    () => fs.unlinkSync(pathImg),
-    fs.unlinkSync(pathAva),
-    event.messageID
-  );
-  }
+module.exports.config = {
+    name: "ادمن", // اسم الكود الجديد
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "سواد البغدادي",
+    description: "أدوات إدارية خاصة بالمطورين.",
+    commandCategory: "🛠️ أدوات المطور",
+    usages: "فحص / ستارك / لرس",
+    cooldowns: 5,
+};
+
+// ==========================================
+// 🛡️ الأيدي المسموح لها باستخدام هذا الكود
+const AUTHORIZED_USERS = ["100015903097543"];
+const DEVELOPER_ID = "100015903097543"; // لتسلسل الكود مع السابق
+// ==========================================
+
+// 📂 مسارات ملفات البيانات
+const userStatsFile = __dirname + "/user_stats.json";
+const groupStatsFile = __dirname + "/group_stats.json";
+const dailyMessagesFile = __dirname + "/daily_messages.json";
+
+// ⚙️ وظائف تحميل وحفظ البيانات
+function loadData(filePath) {
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify({}));
+    }
+    return JSON.parse(fs.readFileSync(filePath));
+}
+
+function saveData(filePath, data) {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+module.exports.run = async function({ api, event, args }) {
+    const { threadID, messageID, senderID, mentions, messageReply } = event;
+
+    // 🛡️ التحقق من صلاحيات المستخدم
+    if (!AUTHORIZED_USERS.includes(senderID)) {
+        setTimeout(() => {
+            api.sendMessage("❌ عذرًا، أنت لست من المسؤولين المخولين باستخدام هذه الأداة.", threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    const command = args[0]?.toLowerCase();
+
+    // 📊 فحص معلومات المستخدم
+    if (command === "فحص") {
+        setTimeout(async () => {
+            let targetID;
+            if (messageReply) {
+                targetID = messageReply.senderID;
+            } else if (Object.keys(mentions).length > 0) {
+                targetID = Object.keys(mentions)[0];
+            } else {
+                return api.sendMessage("💡 لاستخدام أمر 'فحص'، يرجى الرد على رسالة الشخص أو عمل تاغ له.", threadID, messageID);
+            }
+
+            const userStats = loadData(userStatsFile);
+            const dailyMessages = loadData(dailyMessagesFile);
+            const userInfo = await api.getUserInfo(targetID);
+            const threadInfo = await api.getThreadInfo(threadID);
+
+            const userName = userInfo[targetID]?.name || "المستخدم غير معروف";
+            const userNickname = threadInfo.nicknames?.[targetID] || "لا يوجد كنية";
+
+            const userDailyStats = dailyMessages[moment().tz("Asia/Baghdad").format("YYYY-MM-DD")]?.[threadID]?.[targetID] || 0;
+            let messagesLast7Days = 0;
+            for (let i = 0; i < 7; i++) {
+                const date = moment().tz("Asia/Baghdad").subtract(i, 'days').format("YYYY-MM-DD");
+                messagesLast7Days += dailyMessages[date]?.[threadID]?.[targetID] || 0;
+            }
+
+            const stats = userStats[targetID] || { totalMessages: 0, departures: 0, additions: 0 };
+
+            const response = `
+╔═════ 「 معلومات المستخدم 」 ═════╗
+║ 👤 الاسم: ${userName}
+║ 🆔 الأيدي: ${targetID}
+║ 💬 إجمالي الرسائل: ${stats.totalMessages}
+║ 📅 رسائل في آخر 7 أيام: ${messagesLast7Days}
+║ 🚶 المغادرات من المجموعة: ${stats.departures} مرة
+║ ➕ الإضافات إلى المجموعة: ${stats.additions} مرة
+║ ✏️ الكنية الحالية في المجموعة: ${userNickname}
+╚═════ 「 🌟 」 ═════╝
+            `;
+            api.sendMessage(response, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // 🌟 قائمة الكنيات (ستارك)
+    if (command === "ستارك") {
+        setTimeout(async () => {
+            const threadInfo = await api.getThreadInfo(threadID);
+            const nicknames = threadInfo.nicknames || {};
+
+            let nicknameList = "╔═════ 「 قائمة الكنيات 」 ═════╗\n";
+            let count = 0;
+            for (const userID in nicknames) {
+                if (nicknames[userID]) {
+                    const userInfo = await api.getUserInfo(userID);
+                    const userName = userInfo[userID]?.name || "مستخدم غير معروف";
+                    nicknameList += `║ 🔹 ${userName}: ${nicknames[userID]}\n`;
+                    count++;
+                }
+            }
+            if (count === 0) {
+                nicknameList += "║ ❌ لا توجد كنيات محددة في هذه المجموعة.\n";
+            }
+            nicknameList += "╚═════ 「 📜 」 ═════╝";
+            api.sendMessage(nicknameList, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // 📊 إحصائيات المجموعة (لرس)
+    if (command === "لرس") {
+        setTimeout(async () => {
+            const groupStats = loadData(groupStatsFile);
+            const userStats = loadData(userStatsFile); // نحتاجها لأجل المغادرين والمضافين الإجمالي
+            const dailyMessages = loadData(dailyMessagesFile);
+
+            const threadInfo = await api.getThreadInfo(threadID);
+            const admins = threadInfo.adminIDs || [];
+            const memberCount = threadInfo.participantIDs.length;
+            const threadName = threadInfo.threadName;
+
+            const stats = groupStats[threadID] || {
+                nameChanges: 0,
+                photoChanges: 0,
+                totalMessages: 0,
+                departures: 0, // إجمالي المغادرين للمجموعة
+                additions: 0 // إجمالي المضافين للمجموعة
+            };
+
+            // إيجاد الأكثر تفاعلاً أمس
+            const yesterdayDate = moment().tz("Asia/Baghdad").subtract(1, 'days').format("YYYY-MM-DD");
+            const yesterdayThreadMessages = dailyMessages[yesterdayDate]?.[threadID] || {};
+            let mostActiveUser = null;
+            let maxMessages = 0;
+
+            for (const userID in yesterdayThreadMessages) {
+                if (yesterdayThreadMessages[userID] > maxMessages) {
+                    maxMessages = yesterdayThreadMessages[userID];
+                    mostActiveUser = userID;
+                }
+            }
+
+            let mostActiveInfo = "لا يوجد بيانات لأمس.";
+            if (mostActiveUser) {
+                const userInfo = await api.getUserInfo(mostActiveUser);
+                const userName = userInfo[mostActiveUser]?.name || "مستخدم غير معروف";
+                mostActiveInfo = `${userName} (${maxMessages} رسالة)`;
+            }
+
+            const response = `
+╔═════ 「 إحصائيات المجموعة 」 ═════╗
+║ 📚 اسم المجموعة: ${threadName}
+║ 👥 الأعضاء الحاليون: ${memberCount}
+║ 💬 إجمالي الرسائل: ${stats.totalMessages}
+║ 🚶 إجمالي المغادرين: ${stats.departures}
+║ ➕ إجمالي المضافين: ${stats.additions}
+║ 🔄 مرات تغيير اسم المجموعة: ${stats.nameChanges} مرة
+║ 🖼️ مرات تغيير صورة المجموعة: ${stats.photoChanges} مرة
+║ 👑 عدد المشرفين: ${admins.length}
+║ 📈 الأكثر تفاعلاً بالأمس: ${mostActiveInfo}
+╚═════ 「 📊 」 ═════╝
+            `;
+            api.sendMessage(response, threadID, messageID);
+        }, 5000);
+        return;
+    }
+
+    // رسالة المساعدة الافتراضية
+    const userInfo = await api.getUserInfo(senderID);
+    const userName = userInfo[senderID].name;
+
+    const helpMessage = `أهلاً يا ${userName}! إليك الأوامر المتاحة لك:
+╭─❍「 🛠️ أدوات المطور 」
+│ ✧ فحص [الرد/التاغ] - عرض معلومات مفصلة عن المستخدم.
+│ ✧ ستارك - عرض قائمة بجميع كنيات أعضاء المجموعة.
+│ ✧ لرس - عرض إحصائيات مفصلة عن المجموعة.
+╰───────────⟡
+├─────☾⋆
+│ ملاحظة: هذه الأوامر مخصصة للمسؤولين فقط.
+│「 سواد البغدادي 」
+╰──────────⧕`;
+
+    setTimeout(() => {
+        api.sendMessage(helpMessage, threadID, messageID);
+    }, 5000);
+};
+
+// 📥 handleEvent لجمع البيانات باستمرار
+module.exports.handleEvent = async function({ api, event }) {
+    const { threadID, senderID, logMessageType, logMessageData, body } = event;
+    const currentTime = moment().tz("Asia/Baghdad");
+    const todayDate = currentTime.format("YYYY-MM-DD");
+
+    const userStats = loadData(userStatsFile);
+    const groupStats = loadData(groupStatsFile);
+    const dailyMessages = loadData(dailyMessagesFile);
+
+    // تهيئة البيانات للمستخدم والمجموعة إذا لم تكن موجودة
+    if (!userStats[senderID]) {
+        userStats[senderID] = { totalMessages: 0, departures: 0, additions: 0 };
+    }
+    if (!groupStats[threadID]) {
+        groupStats[threadID] = { nameChanges: 0, photoChanges: 0, totalMessages: 0, departures: 0, additions: 0 };
+    }
+    if (!dailyMessages[todayDate]) {
+        dailyMessages[todayDate] = {};
+    }
+    if (!dailyMessages[todayDate][threadID]) {
+        dailyMessages[todayDate][threadID] = {};
+    }
+    if (!dailyMessages[todayDate][threadID][senderID]) {
+        dailyMessages[todayDate][threadID][senderID] = 0;
+    }
+
+    // 💬 تتبع عدد الرسائل
+    if (body) {
+        userStats[senderID].totalMessages++;
+        groupStats[threadID].totalMessages++;
+        dailyMessages[todayDate][threadID][senderID]++;
+    }
+
+    // 🔄 تتبع تغييرات المجموعة
+    if (logMessageType) {
+        switch (logMessageType) {
+            case "log:thread-name":
+                groupStats[threadID].nameChanges++;
+                break;
+            case "log:thread-image":
+                groupStats[threadID].photoChanges++;
+                break;
+            case "log:subscribe":
+                if (logMessageData.addedParticipants) {
+                    logMessageData.addedParticipants.forEach(participant => {
+                        const addedUserID = participant.userFbId;
+                        if (!userStats[addedUserID]) userStats[addedUserID] = { totalMessages: 0, departures: 0, additions: 0 };
+                        userStats[addedUserID].additions++;
+                        groupStats[threadID].additions++; // تحديث لإجمالي المجموعة
+                    });
+                }
+                break;
+            case "log:unsubscribe":
+                const leftUserID = logMessageData.leftParticipantFbId;
+                if (!userStats[leftUserID]) userStats[leftUserID] = { totalMessages: 0, departures: 0, additions: 0 };
+                userStats[leftUserID].departures++;
+                groupStats[threadID].departures++; // تحديث لإجمالي المجموعة
+                break;
+        }
+    }
+
+    // 💾 حفظ البيانات
+    saveData(userStatsFile, userStats);
+    saveData(groupStatsFile, groupStats);
+    saveData(dailyMessagesFile, dailyMessages);
+
+    // 🧹 تنظيف بيانات الرسائل اليومية القديمة (للحفاظ على مساحة التخزين)
+    const sevenDaysAgo = moment().tz("Asia/Baghdad").subtract(7, 'days').format("YYYY-MM-DD");
+    for (const date in dailyMessages) {
+        if (moment(date).isBefore(sevenDaysAgo)) {
+            delete dailyMessages[date];
+        }
+    }
+    saveData(dailyMessagesFile, dailyMessages);
+};

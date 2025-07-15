@@ -2,7 +2,7 @@ const fs = require("fs");
 const axios = require("axios");
 
 module.exports.config = {
-    name: "مراقبة",
+    name: "fbmonitor",
     version: "1.0.0",
     hasPermssion: 0,
     credits: "Facebook Group Monitor",

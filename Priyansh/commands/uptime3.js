@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports.config = {
-  name: "لوست",
+  name: "groupStats",
   version: "1.0.0",
   hasPermssion: 0,
   credits: "Group Stats Monitor",

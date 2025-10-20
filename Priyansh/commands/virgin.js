@@ -3,7 +3,7 @@ const moment = require("moment-timezone");
 
 module.exports.config = {
     name: "تك",
-    version: "2.1.0", // تم تحديث الإصدار
+    version: "2.1.1", // تم تحديث الإصدار
     hasPermssion: 0,
     credits: "سواد البغدادي",
     description: "ألعاب متنوعة + رصيد ورهانات",
@@ -18,13 +18,12 @@ const DEVELOPER_ID = "100015903097543";
 
 const emojiList = ["😂", "😍", "🔥", "💀", "🥶", "🤡", "😎", "😡"];
 const animeNames = ["لوفي", "ناروتو", "غوكو", "إيتاشي", "زورو"];
-let activeGame = {};
 
-// ⏱️ متغير لتخزين وقت آخر استخدام لكل مجموعة
-// الهيكلية: { threadID: timestamp }
-let threadCooldown = {};
-const GLOBAL_COOLDOWN_TIME = 15000; // 15 ثانية بالميلي ثانية
-const RESPONSE_DELAY = 7000; // 7 ثوانٍ بالميلي ثانية
+// ⚙️ إعدادات التأخير الجديدة
+const RESPONSE_DELAY = 7000; // 7 ثوانٍ لجميع ردود البوت
+const GLOBAL_COOLDOWN_TIME = 15000; // 15 ثانية للتأخير العام بين المستخدمين
+let threadCooldown = {}; // لتخزين وقت آخر استخدام لكل مجموعة
+let activeGame = {};
 
 // 💰 تحميل أو إنشاء ملف الرصيد
 function getBalance() {
@@ -55,31 +54,32 @@ module.exports.run = async function({ api, event, args }) {
         return;
     }
 
-    // ⏱️ التحقق من التأخير العام للمجموعة
+    // ⏱️ التحقق من التأخير العام للمجموعة (15 ثانية)
     const currentTime = Date.now();
     if (threadCooldown[threadID] && (currentTime - threadCooldown[threadID]) < GLOBAL_COOLDOWN_TIME) {
         const remainingTime = Math.ceil((GLOBAL_COOLDOWN_TIME - (currentTime - threadCooldown[threadID])) / 1000);
         
-        // إرسال رسالة التنبيه بالتأخير مع تأخير الـ 7 ثواني المعتاد
+        // الرد بتأخير الـ 7 ثواني (RESPONSE_DELAY)
         setTimeout(() => {
             api.sendMessage(`⏳ مهلاً! يجب الانتظار ${remainingTime} ثانية قبل استخدام الكود مرة أخرى في هذه المجموعة.`, threadID, messageID);
         }, RESPONSE_DELAY);
         
-        return;
+        return; // إيقاف التنفيذ
     }
 
     // 💰 تحديث الرصيد الأولي
     if (!balance[senderID]) balance[senderID] = 500;
 
     const command = args[0]?.toLowerCase();
-
-    // ⏱️ وضع تأخير الاستخدام العام للمجموعة الآن
+    
+    // ⏱️ وضع تأخير الاستخدام العام للمجموعة الآن قبل تنفيذ الأمر
     threadCooldown[threadID] = currentTime;
+
 
     // ========== 🚫 أمر حظر / إلغاء حظر ==========
     if (command === "حظر") {
+        // ... (باقي الكود كما هو ولكن مع استخدام RESPONSE_DELAY بدلاً من 5000)
         if (senderID !== DEVELOPER_ID) {
-            // الرد بالتأخير المطلوب (7 ثوانٍ)
             return setTimeout(() => {
                 api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
             }, RESPONSE_DELAY);
@@ -87,7 +87,6 @@ module.exports.run = async function({ api, event, args }) {
 
         const mentionID = Object.keys(mentions)[0];
         if (!mentionID) {
-             // الرد بالتأخير المطلوب (7 ثوانٍ)
             return setTimeout(() => {
                 api.sendMessage(`❌ استخدم: games حظر @[الشخص] لحظر مستخدم، أو games حظر إلغاء @[الشخص] لإلغاء الحظر.`, threadID, messageID);
             }, RESPONSE_DELAY);
@@ -98,12 +97,10 @@ module.exports.run = async function({ api, event, args }) {
             if (index > -1) {
                 bannedUsers.splice(index, 1);
                 saveBannedUsers(bannedUsers);
-                 // الرد بالتأخير المطلوب (7 ثوانٍ)
                 return setTimeout(() => {
                     api.sendMessage(`✅ تم إلغاء حظر المستخدم @${mentionID} بنجاح.`, threadID, messageID);
                 }, RESPONSE_DELAY);
             } else {
-                 // الرد بالتأخير المطلوب (7 ثوانٍ)
                 return setTimeout(() => {
                     api.sendMessage(`❌ المستخدم @${mentionID} ليس محظوراً أصلاً.`, threadID, messageID);
                 }, RESPONSE_DELAY);
@@ -112,12 +109,10 @@ module.exports.run = async function({ api, event, args }) {
             if (!bannedUsers.includes(mentionID)) {
                 bannedUsers.push(mentionID);
                 saveBannedUsers(bannedUsers);
-                 // الرد بالتأخير المطلوب (7 ثوانٍ)
                 return setTimeout(() => {
                     api.sendMessage(`✅ تم حظر المستخدم @${mentionID} من استخدام الكود.`, threadID, messageID);
                 }, RESPONSE_DELAY);
             } else {
-                 // الرد بالتأخير المطلوب (7 ثوانٍ)
                 return setTimeout(() => {
                     api.sendMessage(`❌ المستخدم @${mentionID} محظور بالفعل.`, threadID, messageID);
                 }, RESPONSE_DELAY);
@@ -301,7 +296,7 @@ module.exports.handleEvent = function({ api, event }) {
     };
 
     if (userAnswer === game.answer) {
-        // لا حاجة لتأخير هنا لأنها إجابة سريعة، نتركها كما هي لسرعة الرد
+        // نترك الرد سريعاً هنا لأنه جزء من تحدي الأسرع
         api.sendMessage({
             body: `🏆 مبروك! الفائز هو: @${winnerTag.tag}\n🎯 الإجابة الصحيحة: ${game.answer}`,
             mentions: [winnerTag]

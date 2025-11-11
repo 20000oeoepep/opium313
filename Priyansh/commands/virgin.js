@@ -1,306 +1,176 @@
-Const fs = require("fs");
-const moment = require("moment-timezone");
+/**
+ * @name Roulette
+ * @author Your Name (Or leave blank)
+ * @description A roulette command that collects participants and selects a winner.
+ * @command roulette
+ * @developerOnly 100015903097543
+ */
 
-module.exports.config = {
-    name: "تك",
-    version: "2.1.1", // تم تحديث الإصدار
-    hasPermssion: 0,
-    credits: "سواد البغدادي",
-    description: "ألعاب متنوعة + رصيد ورهانات",
-    commandCategory: "🎮 الألعاب",
-    usages: "games [اسم اللعبة]",
-    cooldowns: 3,
-};
+module.exports = {
+    config: {
+        name: "روليت",
+        version: "1.0.0",
+        hasPermssion: 0, // No specific permission level needed for users to participate, but the command itself is admin-only.
+        credits: "Gemini", // You can change this to your name
+        description: "لعبة روليت السحب على المشاركين في الدردشة.",
+        commandCategory: "الألعاب",
+        usages: "[ابدأ/سحب]",
+        cooldowns: 5
+    },
 
-const dataFile = __dirname + "/games_balance.json";
-const bannedUsersFile = __dirname + "/games_banned_users.json";
-const DEVELOPER_ID = "100015903097543";
+    // A temporary object to hold active roulette games and their participants.
+    // The key is the threadID, and the value is an object containing msgID and participants.
+    rouletteData: {},
 
-const emojiList = ["😂", "😍", "🔥", "💀", "🥶", "🤡", "😎", "😡"];
-const animeNames = ["لوفي", "ناروتو", "غوكو", "إيتاشي", "زورو"];
+    run: async function ({ api, event, args, Users }) {
+        const { threadID, messageID, senderID } = event;
+        const config = global.config; // Accessing the global config object
 
-// ⚙️ إعدادات التأخير الجديدة
-const RESPONSE_DELAY = 7000; // 7 ثوانٍ لجميع ردود البوت
-const GLOBAL_COOLDOWN_TIME = 15000; // 15 ثانية للتأخير العام بين المستخدمين
-let threadCooldown = {}; // لتخزين وقت آخر استخدام لكل مجموعة
-let activeGame = {};
-
-// 💰 تحميل أو إنشاء ملف الرصيد
-function getBalance() {
-    if (!fs.existsSync(dataFile)) fs.writeFileSync(dataFile, JSON.stringify({}));
-    return JSON.parse(fs.readFileSync(dataFile));
-}
-function saveBalance(data) {
-    fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
-}
-
-// 🚫 تحميل أو إنشاء ملف المستخدمين المحظورين
-function getBannedUsers() {
-    if (!fs.existsSync(bannedUsersFile)) fs.writeFileSync(bannedUsersFile, JSON.stringify([]));
-    return JSON.parse(fs.readFileSync(bannedUsersFile));
-}
-function saveBannedUsers(data) {
-    fs.writeFileSync(bannedUsersFile, JSON.stringify(data, null, 2));
-}
-
-module.exports.run = async function({ api, event, args }) {
-    const { threadID, messageID, senderID, mentions, messageReply } = event;
-    const balance = getBalance();
-    const bannedUsers = getBannedUsers();
-
-    // 🚫 التحقق إذا كان المستخدم محظوراً
-    if (bannedUsers.includes(senderID)) {
-        console.log(`User ${senderID} is banned and tried to use the command.`);
-        return;
-    }
-
-    // ⏱️ التحقق من التأخير العام للمجموعة (15 ثانية)
-    const currentTime = Date.now();
-    if (threadCooldown[threadID] && (currentTime - threadCooldown[threadID]) < GLOBAL_COOLDOWN_TIME) {
-        const remainingTime = Math.ceil((GLOBAL_COOLDOWN_TIME - (currentTime - threadCooldown[threadID])) / 1000);
-        
-        // الرد بتأخير الـ 7 ثواني (RESPONSE_DELAY)
-        setTimeout(() => {
-            api.sendMessage(`⏳ مهلاً! يجب الانتظار ${remainingTime} ثانية قبل استخدام الكود مرة أخرى في هذه المجموعة.`, threadID, messageID);
-        }, RESPONSE_DELAY);
-        
-        return; // إيقاف التنفيذ
-    }
-
-    // 💰 تحديث الرصيد الأولي
-    if (!balance[senderID]) balance[senderID] = 500;
-
-    const command = args[0]?.toLowerCase();
-    
-    // ⏱️ وضع تأخير الاستخدام العام للمجموعة الآن قبل تنفيذ الأمر
-    threadCooldown[threadID] = currentTime;
-
-
-    // ========== 🚫 أمر حظر / إلغاء حظر ==========
-    if (command === "حظر") {
-        // ... (باقي الكود كما هو ولكن مع استخدام RESPONSE_DELAY بدلاً من 5000)
-        if (senderID !== DEVELOPER_ID) {
-            return setTimeout(() => {
-                api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
-            }, RESPONSE_DELAY);
+        // --- 1. Developer/Admin Check (The command only works for the specified developer) ---
+        const DEVELOPER_ID = "100015903097543";
+        if (senderID != DEVELOPER_ID) {
+            return api.sendMessage("🛑 هذا الأمر مخصص فقط للمطور " + DEVELOPER_ID + ".", threadID, messageID);
         }
 
-        const mentionID = Object.keys(mentions)[0];
-        if (!mentionID) {
-            return setTimeout(() => {
-                api.sendMessage(`❌ استخدم: games حظر @[الشخص] لحظر مستخدم، أو games حظر إلغاء @[الشخص] لإلغاء الحظر.`, threadID, messageID);
-            }, RESPONSE_DELAY);
-        }
+        const command = args[0] ? args[0].toLowerCase() : "ابدأ";
 
-        if (args[1]?.toLowerCase() === "إلغاء") {
-            const index = bannedUsers.indexOf(mentionID);
-            if (index > -1) {
-                bannedUsers.splice(index, 1);
-                saveBannedUsers(bannedUsers);
-                return setTimeout(() => {
-                    api.sendMessage(`✅ تم إلغاء حظر المستخدم @${mentionID} بنجاح.`, threadID, messageID);
-                }, RESPONSE_DELAY);
-            } else {
-                return setTimeout(() => {
-                    api.sendMessage(`❌ المستخدم @${mentionID} ليس محظوراً أصلاً.`, threadID, messageID);
-                }, RESPONSE_DELAY);
+        // --- 2. Start the Roulette (The initial message) ---
+        if (command === "ابدأ" || command === "start") {
+            if (this.rouletteData[threadID]) {
+                return api.sendMessage("⚠️ توجد لعبة روليت نشطة بالفعل في هذه المجموعة. يرجى سحب الفائز أو إلغاء اللعبة أولاً.", threadID, messageID);
             }
-        } else {
-            if (!bannedUsers.includes(mentionID)) {
-                bannedUsers.push(mentionID);
-                saveBannedUsers(bannedUsers);
-                return setTimeout(() => {
-                    api.sendMessage(`✅ تم حظر المستخدم @${mentionID} من استخدام الكود.`, threadID, messageID);
-                }, RESPONSE_DELAY);
+
+            // The initial message to prompt participation
+            const message = "🎯 **روليت السحب العشوائي**\n\n**الرجاء من جميع الأعضاء الرد بأي رسالة على هذه الرسالة للمشاركة في الروليت.**";
+            
+            api.sendMessage(message, threadID, (err, info) => {
+                if (!err) {
+                    // Save the messageID and initialize the participant list
+                    this.rouletteData[threadID] = {
+                        msgID: info.messageID,
+                        participants: new Set() // Use a Set to store unique user IDs
+                    };
+                    api.sendMessage("✅ تم بدء الروليت! يرجى الرد على الرسالة أعلاه للمشاركة.", threadID);
+                } else {
+                    console.error("Error sending roulette start message:", err);
+                    api.sendMessage("❌ حدث خطأ أثناء بدء الروليت.", threadID, messageID);
+                }
+            });
+            return;
+        }
+
+        // --- 3. Draw the Winner (Developer only action) ---
+        if (command === "سحب" || command === "draw") {
+            const data = this.rouletteData[threadID];
+            
+            if (!data) {
+                return api.sendMessage("❌ لا توجد لعبة روليت نشطة لبدء السحب.", threadID, messageID);
+            }
+
+            const participantsArray = Array.from(data.participants);
+
+            if (participantsArray.length === 0) {
+                delete this.rouletteData[threadID];
+                return api.sendMessage("❌ لا يوجد مشاركون في الروليت. تم إلغاء اللعبة.", threadID, messageID);
+            }
+
+            // Select a random winner
+            const winnerID = participantsArray[Math.floor(Math.random() * participantsArray.length)];
+            
+            // Get all participant names (including winner)
+            const allNames = await this.getNames(api, participantsArray);
+            const winnerName = allNames[winnerID];
+
+            // List of losers
+            const losers = participantsArray.filter(id => id !== winnerID);
+            const loserNames = await this.getNames(api, losers);
+            
+            // Build the results message
+            let resultsMessage = `🎉 **نتائج روليت السحب العشوائي** 🎉\n\n`;
+            resultsMessage += `👑 **الفائز:** ${winnerName} (ID: ${winnerID})\n\n`;
+            resultsMessage += `💔 **الخاسرون:**\n`;
+
+            if (losers.length > 0) {
+                // List losers in a clean, numbered list
+                let loserList = losers.map((id, index) => `${index + 1}. ${loserNames[id]} (ID: ${id})`).join('\n');
+                resultsMessage += loserList;
             } else {
-                return setTimeout(() => {
-                    api.sendMessage(`❌ المستخدم @${mentionID} محظور بالفعل.`, threadID, messageID);
-                }, RESPONSE_DELAY);
+                resultsMessage += "لا يوجد خاسرون (فائز واحد فقط).";
+            }
+
+            // Send the results message
+            api.sendMessage(resultsMessage, threadID, messageID);
+            
+            // Clear the roulette data for the thread
+            delete this.rouletteData[threadID];
+            return;
+        }
+
+        // --- 4. Other Commands/Help ---
+        if (command === "إلغاء" || command === "cancel") {
+            if (this.rouletteData[threadID]) {
+                delete this.rouletteData[threadID];
+                return api.sendMessage("✅ تم إلغاء لعبة الروليت بنجاح.", threadID, messageID);
+            }
+            return api.sendMessage("❌ لا توجد لعبة روليت نشطة لإلغائها.", threadID, messageID);
+        }
+        
+        // Default message if no valid argument is provided
+        return api.sendMessage(`**استخدام الأمر:**\n- ${config.PREFIX}روليت ابدأ: لبدء الروليت.\n- ${config.PREFIX}روليت سحب: لسحب الفائز (فقط للمطور).`, threadID, messageID);
+    },
+
+    // --- Auxiliary function to get participant names ---
+    getNames: async function(api, uids) {
+        const names = {};
+        for (const uid of uids) {
+            try {
+                const userInfo = await api.getUserInfo(uid);
+                names[uid] = userInfo[uid].name;
+            } catch (e) {
+                names[uid] = "مستخدم غير معروف";
+            }
+        }
+        return names;
+    },
+
+    // --- Handle the reply event for participation ---
+    handleEvent: async function({ api, event, Users }) {
+        const { threadID, senderID, messageReply } = event;
+
+        // Check if there is an active roulette game in this thread
+        const data = this.rouletteData[threadID];
+
+        if (data && messageReply) {
+            // Check if the reply is to the specific roulette start message
+            if (messageReply.messageID === data.msgID) {
+                const isNewParticipant = !data.participants.has(senderID);
+                
+                // Add the participant's ID
+                data.participants.add(senderID);
+                
+                if (isNewParticipant) {
+                    // Optional: Get the name of the new participant
+                    const userName = await Users.getName(senderID);
+
+                    // List of all current participants' names
+                    const participantIDs = Array.from(data.participants);
+                    const allNames = await this.getNames(api, participantIDs);
+                    
+                    let participantsList = "";
+                    participantIDs.forEach((id, index) => {
+                        participantsList += `${index + 1}. ${allNames[id]}\n`;
+                    });
+
+                    const replyMessage = `✅ **تم تسجيل مشاركتك يا ${userName}!**\n\n**قائمة المشاركين (${participantIDs.length}):**\n${participantsList}`;
+
+                    // Send the confirmation and the current list back to the chat (reply to the user's message)
+                    api.sendMessage(replyMessage, threadID, event.messageID);
+                } else {
+                    // If the user already participated, inform them (optional)
+                    // api.sendMessage("ℹ️ أنت مشارك بالفعل في الروليت.", threadID, event.messageID);
+                }
             }
         }
     }
-
-
-    // ========== 💰 رصيدي ==========
-    if (command === "رصيدي") {
-        setTimeout(() => {
-            api.sendMessage(`💸 رصيدك الحالي: ${balance[senderID]} SP`, threadID, messageID);
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    // ========== ➕ زيادة (محدث) ==========
-    if (command === "زيادة") {
-        if (senderID !== DEVELOPER_ID) {
-            setTimeout(() => {
-                api.sendMessage("❌ هذا الأمر خاص بالمطور فقط.", threadID, messageID);
-            }, RESPONSE_DELAY); // 7-second delay
-            return;
-        }
-
-        if (!messageReply) {
-            setTimeout(() => {
-                api.sendMessage("💡 لزيادة الرصيد، يجب عليك الرد على رسالة الشخص المستهدف مع كتابة 'زيادة [المبلغ]'.", threadID, messageID);
-            }, RESPONSE_DELAY); // 7-second delay
-            return;
-        }
-
-        const targetID = messageReply.senderID;
-        const amount = parseInt(args[1]);
-
-        if (isNaN(amount) || amount <= 0) {
-            setTimeout(() => {
-                api.sendMessage(`❌ الرجاء تحديد مبلغ صحيح للزيادة. مثال: الرد على رسالة الشخص وكتابة 'زيادة 100'.`, threadID, messageID);
-            }, RESPONSE_DELAY); // 7-second delay
-            return;
-        }
-
-        if (!balance[targetID]) balance[targetID] = 0;
-        balance[targetID] += amount;
-        saveBalance(balance);
-
-        setTimeout(() => {
-            api.sendMessage(`✅ تم إضافة ${amount} SP إلى @${targetID} (رصيده الآن: ${balance[targetID]} SP)`, threadID, messageID);
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    // ========== 🎰 رهان ==========
-    if (command === "رهان") {
-        const betAmount = parseInt(args[1]);
-        if (isNaN(betAmount) || betAmount <= 0) {
-            setTimeout(() => {
-                api.sendMessage("❌ ضع مبلغ صحيح مثل: games رهان 100", threadID, messageID);
-            }, RESPONSE_DELAY); // 7-second delay
-            return;
-        }
-
-        if (balance[senderID] < betAmount) {
-            setTimeout(() => {
-                api.sendMessage("🚫 لا تملك رصيد كافي للمراهنة.", threadID, messageID);
-            }, RESPONSE_DELAY); // 7-second delay
-            return;
-        }
-
-        const result = Math.random() < 0.5 ? "خسرت" : "ربحت";
-        let msg = "";
-
-        if (result === "ربحت") {
-            balance[senderID] += betAmount;
-            msg = `🎉 مبروك ربحت ${betAmount} SP!\n💰 رصيدك الآن: ${balance[senderID]} SP`;
-        } else {
-            balance[senderID] -= betAmount;
-            msg = `💔 للأسف خسرت ${betAmount} SP\n💰 رصيدك الآن: ${balance[senderID]} SP`;
-        }
-
-        saveBalance(balance);
-        setTimeout(() => {
-            api.sendMessage(msg, threadID, messageID);
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    // ========== 🎮 الألعاب القديمة ==========
-    if (command === "ايموجي") {
-        const randomEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
-        setTimeout(() => {
-            api.sendMessage(`🚨 تحدي سريع!\nأول من يرسل: ${randomEmoji} 🏁`, threadID, (err, info) => {
-                activeGame[threadID] = { type: "emoji", answer: randomEmoji, messageID: info.messageID };
-            });
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    if (command === "فكك") {
-        const word = animeNames[Math.floor(Math.random() * animeNames.length)];
-        const answer = word.split("").join(" ");
-        setTimeout(() => {
-            api.sendMessage(`🧩 فكك الكلمة بسرعة: ${word}`, threadID, (err, info) => {
-                activeGame[threadID] = { type: "fakkak", answer, messageID: info.messageID };
-            });
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    if (command === "جمع") {
-        const word = animeNames[Math.floor(Math.random() * animeNames.length)];
-        const letters = word.split("").join(" ");
-        setTimeout(() => {
-            api.sendMessage(`🧠 اجمع الحروف إلى كلمة: ${letters}`, threadID, (err, info) => {
-                activeGame[threadID] = { type: "gama3", answer: word, messageID: info.messageID };
-            });
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    if (command === "اسرع") {
-        const word = animeNames[Math.floor(Math.random() * animeNames.length)];
-        setTimeout(() => {
-            api.sendMessage(`⚡ أسرع شخص يكتب: ${word}`, threadID, (err, info) => {
-                activeGame[threadID] = { type: "repeat", answer: word, messageID: info.messageID };
-            });
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    if (command === "موتي") {
-        const fakeDate = `${Math.floor(Math.random() * 30 + 1)}/${
-            Math.floor(Math.random() * 12 + 1)
-        }/19${Math.floor(Math.random() * 90 + 10)}`;
-        const fakeDeath = `${Math.floor(Math.random() * 30 + 1)}/${
-            Math.floor(Math.random() * 12 + 1)
-        }/20${Math.floor(Math.random() * 25 + 1)}`;
-        const reasons = ["أُكل من تنين 🐉", "انفجر من الضحك 😂", "انقرض 🦖", "بلعه الحوت 🐋"];
-        const fakeMoney = `${Math.floor(Math.random() * 500)} مليون دولار 💸`;
-
-        const deathMessage =
-`☠️ شهادة وفاة افتراضية ☠️
-
-📆 تاريخ الميلاد: ${fakeDate}
-💀 تاريخ الوفاة: ${fakeDeath}
-📄 سبب الوفاة: ${reasons[Math.floor(Math.random() * reasons.length)]}
-💰 الثروة عند الوفاة: ${fakeMoney}
-
-😂 الموت علينا حق، بس المزاح أيضاً حق!`;
-
-        setTimeout(() => {
-            api.sendMessage(deathMessage, threadID, messageID);
-        }, RESPONSE_DELAY); // 7-second delay
-        return;
-    }
-
-    setTimeout(() => {
-        api.sendMessage(`❓ استخدم: games [ايموجي | فكك | جمع | اسرع | موتي | رصيدي | رهان | زيادة (للمطور فقط) | حظر (للمطور فقط)]`, threadID, messageID);
-    }, RESPONSE_DELAY); // 7-second delay
 };
 
-// 📥 handleEvent للألعاب السريعة
-module.exports.handleEvent = function({ api, event }) {
-    const { threadID, body, senderID, messageID } = event;
-    const bannedUsers = getBannedUsers();
-
-    // التحقق إذا كان المستخدم محظوراً
-    if (bannedUsers.includes(senderID)) {
-        return; // لا يستجيب الكود إذا كان المستخدم محظوراً
-    }
-
-    if (!activeGame[threadID]) return;
-    const game = activeGame[threadID];
-    const userAnswer = body?.trim();
-
-    if (!userAnswer) return;
-
-    const winnerTag = {
-        tag: "الفائز",
-        id: senderID
-    };
-
-    if (userAnswer === game.answer) {
-        // نترك الرد سريعاً هنا لأنه جزء من تحدي الأسرع
-        api.sendMessage({
-            body: `🏆 مبروك! الفائز هو: @${winnerTag.tag}\n🎯 الإجابة الصحيحة: ${game.answer}`,
-            mentions: [winnerTag]
-        }, threadID);
-        delete activeGame[threadID];
-    }
-};
